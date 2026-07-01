@@ -1,0 +1,523 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────
+// USER
+// ─────────────────────────────────────
+
+model User {
+  id               String    @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String    @unique
+  password         String?
+  googleId         String?   @unique
+  avatar           String?
+  isEmailVerified  Boolean   @default(false)
+  refreshToken     String?
+
+  // Onboarding
+  onboardingDone   Boolean   @default(false)
+  goal             String?
+  level            String?
+  topics           String[]
+
+  // Profile extras
+  bio              String?
+  location         String?
+  title            String?
+
+  // Preferences
+  theme            String    @default("light")
+  language         String    @default("en")
+  aiResponseLang   String    @default("auto")
+  timezone         String    @default("UTC")
+  dateFormat       String    @default("DD/MM/YYYY")
+  codeCommentsLang String    @default("english")
+  rtlSupport       Boolean   @default(false)
+
+  // Voice
+  voiceEnabled     Boolean   @default(false)
+  selectedVoice    String    @default("aria")
+  voiceSpeed       Float     @default(1.0)
+  autoPlayVoice    Boolean   @default(false)
+  micSensitivity   Int       @default(75)
+
+  // Notification prefs
+  notifLearning    Boolean   @default(true)
+  notifRoadmap     Boolean   @default(true)
+  notifProject     Boolean   @default(true)
+  notifAchievement Boolean   @default(true)
+  notifAiUsage     Boolean   @default(false)
+  notifWeekly      Boolean   @default(true)
+  emailDigest      String    @default("daily")
+
+  // Stats (denormalized for speed)
+  totalChats       Int       @default(0)
+  totalMessages    Int       @default(0)
+  topicsLearned    Int       @default(0)
+  dayStreak        Int       @default(0)
+  longestStreak    Int       @default(0)
+  projectsBuilt    Int       @default(0)
+  hoursStudied     Float     @default(0)
+  lastActiveDate   DateTime?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  chats            Chat[]
+  messages         Message[]
+  apiKeys          ApiKey[]
+  roadmaps         Roadmap[]
+  projects         Project[]
+  studySessions    StudySession[]
+  progress         Progress?
+  folders          Folder[]
+  otps             OTP[]
+  sessions         UserSession[]
+  milestones       Milestone[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────
+// OTP
+// ─────────────────────────────────────
+
+model OTP {
+  id         String   @id @default(cuid())
+  userId     String?
+  email      String
+  hashedOtp  String
+  type       OTPType
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, type])
+  @@map("otps")
+}
+
+enum OTPType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  LOGIN_VERIFICATION
+  EMAIL_CHANGE
+}
+
+// ─────────────────────────────────────
+// USER SESSION
+// ─────────────────────────────────────
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  deviceInfo   String
+  ipAddress    String?
+  location     String?
+  isActive     Boolean  @default(true)
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+// ─────────────────────────────────────
+// API KEY
+// ─────────────────────────────────────
+
+model ApiKey {
+  id             String    @id @default(cuid())
+  userId         String
+  provider       Provider
+  encryptedKey   String
+  keyPreview     String
+  label          String?
+  isActive       Boolean   @default(true)
+  isPrimary      Boolean   @default(false)
+  customEndpoint String?
+  customModel    String?
+
+  // Usage tracking
+  totalTokens    BigInt    @default(0)
+  totalRequests  Int       @default(0)
+  estimatedCost  Float     @default(0)
+  lastUsedAt     DateTime?
+
+  // Feature routing
+  routeLearning  String?
+  routeCode      String?
+  routeRoadmap   String?
+  routePlanner   String?
+  routeProject   String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       Message[]
+
+  @@index([userId, provider])
+  @@map("api_keys")
+}
+
+enum Provider {
+  OPENAI
+  ANTHROPIC
+  GEMINI
+  MISTRAL
+  GROQ
+  TOGETHER
+  COHERE
+  CUSTOM
+}
+
+// ─────────────────────────────────────
+// CHAT
+// ─────────────────────────────────────
+
+model Chat {
+  id               String    @id @default(cuid())
+  userId           String
+  title            String    @default("New Chat")
+  mode             ChatMode  @default(FREE_CHAT)
+  aiProvider       String    @default("auto")
+  aiModel          String?
+  isPinned         Boolean   @default(false)
+  folderId         String?
+  isCompareMode    Boolean   @default(false)
+  compareProviders String[]
+  messageCount     Int       @default(0)
+  lastMessage      String?
+  lastMessageAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder           Folder?   @relation(fields: [folderId], references: [id])
+  messages         Message[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, isPinned])
+  @@map("chats")
+}
+
+enum ChatMode {
+  LEARNING
+  CODE_HELPER
+  PROJECT_BUILDER
+  ROADMAP_BUILDER
+  STUDY_PLANNER
+  INTERVIEW_PREP
+  QUIZ
+  FREE_CHAT
+}
+
+// ─────────────────────────────────────
+// MESSAGE
+// ─────────────────────────────────────
+
+model Message {
+  id               String    @id @default(cuid())
+  chatId           String
+  userId           String
+  role             Role
+  content          String    @db.Text
+  provider         String?
+  model            String?
+  promptTokens     Int       @default(0)
+  completionTokens Int       @default(0)
+  totalTokens      Int       @default(0)
+  apiKeyId         String?
+  createdAt        DateTime  @default(now())
+
+  chat             Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id])
+  apiKey           ApiKey?   @relation(fields: [apiKeyId], references: [id])
+  attachments      Attachment[]
+  compareResponses CompareResponse[]
+
+  @@index([chatId, createdAt(sort: Asc)])
+  @@map("messages")
+}
+
+enum Role {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model Attachment {
+  id         String   @id @default(cuid())
+  messageId  String
+  type       String
+  filename   String
+  url        String
+  size       Int
+  createdAt  DateTime @default(now())
+
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  @@map("attachments")
+}
+
+model CompareResponse {
+  id        String   @id @default(cuid())
+  messageId String
+  provider  String
+  model     String
+  content   String   @db.Text
+  tokens    Int      @default(0)
+  createdAt DateTime @default(now())
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  @@map("compare_responses")
+}
+
+// ─────────────────────────────────────
+// FOLDER
+// ─────────────────────────────────────
+
+model Folder {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  color     String   @default("#2563EB")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chats     Chat[]
+
+  @@map("folders")
+}
+
+// ─────────────────────────────────────
+// ROADMAP
+// ─────────────────────────────────────
+
+model Roadmap {
+  id               String      @id @default(cuid())
+  userId           String
+  title            String
+  description      String?
+  goal             String?
+  overallProgress  Float       @default(0)
+  estimatedWeeks   Int?
+  nextCertification String?
+  isAIGenerated    Boolean     @default(true)
+  isActive         Boolean     @default(true)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestones       RoadmapMilestone[]
+
+  @@index([userId, isActive])
+  @@map("roadmaps")
+}
+
+model RoadmapMilestone {
+  id             String          @id @default(cuid())
+  roadmapId      String
+  title          String
+  description    String?
+  status         MilestoneStatus @default(LOCKED)
+  estimatedHours Int?
+  actualHours    Float           @default(0)
+  tags           String[]
+  resources      String[]
+  skillsGained   String[]
+  unlocksAt      DateTime?
+  completedAt    DateTime?
+  progress       Float           @default(0)
+  currentModule  String?
+  order          Int
+  imageUrl       String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  roadmap        Roadmap         @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  @@index([roadmapId, order])
+  @@map("roadmap_milestones")
+}
+
+enum MilestoneStatus {
+  LOCKED
+  UPCOMING
+  IN_PROGRESS
+  COMPLETED
+}
+
+// ─────────────────────────────────────
+// PROJECT
+// ─────────────────────────────────────
+
+model Project {
+  id             String        @id @default(cuid())
+  userId         String
+  name           String
+  description    String?
+  status         ProjectStatus @default(PLANNING)
+  priority       Priority      @default(MEDIUM)
+  techStack      String[]
+  coverImage     String?
+  progress       Float         @default(0)
+  progressLabel  String?
+  chatId         String?
+  activeSprints  Int           @default(0)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sprints        Sprint[]
+
+  @@index([userId, status])
+  @@map("projects")
+}
+
+model Sprint {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  status    String
+  tasks     String[]
+  createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@map("sprints")
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  IN_REVIEW
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ─────────────────────────────────────
+// STUDY SESSION (Planner)
+// ─────────────────────────────────────
+
+model StudySession {
+  id        String        @id @default(cuid())
+  userId    String
+  title     String
+  type      SessionType
+  startTime DateTime
+  endTime   DateTime
+  duration  Int
+  date      DateTime
+  status    SessionStatus @default(SCHEDULED)
+  tags      String[]
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("study_sessions")
+}
+
+enum SessionType {
+  DEEP_WORK
+  REVIEW
+  PRACTICE
+  PROJECT_CODING
+  AI_SESSION
+}
+
+enum SessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+// ─────────────────────────────────────
+// PROGRESS
+// ─────────────────────────────────────
+
+model Progress {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityLogs ActivityLog[]
+  topicMastery TopicMastery[]
+  milestones   Milestone[]
+
+  @@map("progress")
+}
+
+model ActivityLog {
+  id             String   @id @default(cuid())
+  progressId     String
+  date           DateTime @db.Date
+  activityCount  Int      @default(0)
+  hoursStudied   Float    @default(0)
+
+  progress       Progress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+
+  @@unique([progressId, date])
+  @@index([progressId, date])
+  @@map("activity_logs")
+}
+
+model TopicMastery {
+  id          String   @id @default(cuid())
+  progressId  String
+  topic       String
+  mastery     Float    @default(0)
+  lastStudied DateTime?
+
+  progress    Progress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+
+  @@unique([progressId, topic])
+  @@map("topic_mastery")
+}
+
+model Milestone {
+  id         String          @id @default(cuid())
+  progressId String
+  userId     String
+  title      String
+  type       MilestoneType
+  metadata   String?
+  earnedAt   DateTime        @default(now())
+
+  progress   Progress        @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([progressId])
+  @@map("milestones")
+}
+
+enum MilestoneType {
+  CERTIFICATE
+  BADGE
+  STREAK
+  PROJECT
+}

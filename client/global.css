@@ -1,0 +1,115 @@
+/** @import must precede all other statements */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * BodhAI Dark Theme with Neon Gradients
+   * Deep navy background (#0f172a equivalent) with blue, purple, pink neon accents
+   */
+  :root {
+    --background: 215 35% 9%;
+    --foreground: 210 40% 98%;
+
+    --card: 215 28% 15%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 215 28% 15%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 260 100% 60%;
+    --primary-foreground: 215 35% 9%;
+
+    --secondary: 200 100% 50%;
+    --secondary-foreground: 215 35% 9%;
+
+    --muted: 215 20% 35%;
+    --muted-foreground: 210 15% 70%;
+
+    --accent: 300 100% 60%;
+    --accent-foreground: 215 35% 9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 20% 25%;
+    --input: 215 28% 18%;
+    --ring: 260 100% 60%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 215 35% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 260 100% 60%;
+    --sidebar-primary-foreground: 215 35% 9%;
+    --sidebar-accent: 300 100% 60%;
+    --sidebar-accent-foreground: 215 35% 9%;
+    --sidebar-border: 215 20% 25%;
+    --sidebar-ring: 260 100% 60%;
+
+    /* Neon color variables */
+    --neon-blue: 200 100% 50%;
+    --neon-purple: 260 100% 60%;
+    --neon-pink: 300 100% 60%;
+    --neon-cyan: 180 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  pre,
+  code {
+    overflow-x: auto;
+    white-space: pre;
+  }
+}
+
+/* Glassmorphism effect */
+@layer components {
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-black/20 backdrop-blur-lg border border-white/10;
+  }
+
+  .neon-glow {
+    @apply drop-shadow-[0_0_20px_rgba(147,51,234,0.5)];
+  }
+
+  .neon-text-gradient {
+    @apply bg-gradient-to-r from-blue-400 via-purple-500 to-pink-400 bg-clip-text text-transparent;
+  }
+
+  .smooth-transition {
+    @apply transition-all duration-300 ease-out;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
