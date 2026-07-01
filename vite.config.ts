@@ -2,8 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import type { Plugin } from "vite";
-import { createServer as createExpressServer } from "./server/index";
-
 // Vite plugin to integrate Express server in dev mode
 const expressPlugin = (): Plugin => {
   let expressApp: any;
@@ -11,7 +9,8 @@ const expressPlugin = (): Plugin => {
   return {
     name: "express-middleware",
     apply: "serve",
-    configureServer(server) {
+    async configureServer(server) {
+      const { createServer: createExpressServer } = await import("./server/index");
       expressApp = createExpressServer();
 
       server.middlewares.use((req, res, next) => {
