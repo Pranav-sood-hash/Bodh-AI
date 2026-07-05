@@ -17,6 +17,7 @@ import plannerRoutes from './routes/planner.routes';
 import progressRoutes from './routes/progress.routes';
 import folderRoutes from './routes/folder.routes';
 import settingsRoutes from './routes/settings.routes';
+import { handleChat } from '../server/routes/chat';
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api/', apiLimiter);
 
 // Register routes
+app.post('/api/chat', handleChat);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/chats', chatRoutes);
