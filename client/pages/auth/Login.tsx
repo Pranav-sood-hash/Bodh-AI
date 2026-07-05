@@ -88,13 +88,15 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err: any) {
       setLoading(false);
-      const errMsg = err.response?.data?.message || '';
+      const errMsg = err.response?.data?.message || err.message || '';
       if (errMsg.includes('verify')) {
         setFormError('not_verified');
       } else if (errMsg.includes('password') || errMsg.includes('Invalid')) {
         setFormError('wrong_password');
-      } else {
+      } else if (err.response?.status === 404) {
         setFormError('not_registered');
+      } else {
+        setFormError(errMsg || 'An error occurred. Please try again.');
       }
     }
   };
@@ -235,6 +237,14 @@ export default function Login() {
                 <Link to="/signup" className="font-bold underline hover:text-red-800">
                   Create a new account →
                 </Link>
+              </div>
+            </div>
+          )}
+          {formError !== 'wrong_password' && formError !== 'not_verified' && formError !== 'not_registered' && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-700 text-sm flex items-start gap-2.5">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <span>{formError}</span>
               </div>
             </div>
           )}
