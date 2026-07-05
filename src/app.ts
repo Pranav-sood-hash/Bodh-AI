@@ -19,6 +19,8 @@ import folderRoutes from './routes/folder.routes';
 import settingsRoutes from './routes/settings.routes';
 import { handleChat } from '../server/routes/chat';
 
+import prisma from './config/db';
+
 const app = express();
 
 // Security and utility middleware
@@ -37,6 +39,28 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Apply rate limiting to all API requests
 app.use('/api/', apiLimiter);
+
+// Diagnostic health check route
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'UNKNOWN';
+  try {
+    await prisma.user.count();
+    dbStatus = 'CONNECTED';
+  } catch (err: any) {
+    dbStatus = `FAILED: ${err.message}`;
+  }
+
+  res.status(200).json({
+    status: 'OK',
+    env: process.env.NODE_ENV,
+    database: dbStatus,
+    jwtAccessSecretExists: !!process.env.JWT_ACCESS_SECRET,
+    jwtRefreshSecretExists: !!process.env.JWT_REFRESH_SECRET,
+    gmailUserExists: !!process.env.GMAIL_USER,
+    gmailAppPasswordExists: !!process.env.GMAIL_APP_PASSWORD,
+    groqApiKeyExists: !!process.env.GROQ_API_KEY,
+  });
+});
 
 // Register routes
 app.post('/api/chat', handleChat);
