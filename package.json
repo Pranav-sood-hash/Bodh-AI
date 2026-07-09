@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "prisma generate && npm run build:client && npm run build:server",
+    "build": "prisma generate && npm run build:client && npm run build:server && esbuild api/index.ts --bundle --platform=node --format=esm --packages=external --outfile=api/index.js && node -e \"const fs = require('fs'); if (process.env.VERCEL) { try { fs.unlinkSync('api/index.ts'); } catch (e) {} }\"",
     "build:client": "vite build",
     "build:server": "vite build --config vite.config.server.ts",
     "start": "node dist/server/node-build.mjs",
@@ -104,6 +104,7 @@
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "esbuild": "^0.28.1",
     "framer-motion": "^12.23.12",
     "globals": "^16.3.0",
     "input-otp": "^1.4.2",
