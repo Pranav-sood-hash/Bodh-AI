@@ -292,7 +292,7 @@ export default function Knowledge() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex overflow-hidden font-sans">
       <Sidebar userName={userName} />
 
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 flex overflow-hidden pl-0 lg:pl-64">
         {/* LEFT COLUMN: LIST & SEARCH */}
         <div className="w-80 border-r border-white/5 bg-slate-900/40 flex flex-col h-full">
           <div className="p-5 border-b border-white/5">

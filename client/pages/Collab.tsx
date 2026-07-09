@@ -284,7 +284,7 @@ export default function Collab() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex overflow-hidden font-sans">
       <Sidebar userName={userName} />
 
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 flex overflow-hidden pl-0 lg:pl-64">
         {/* ROOMS LIST VIEW */}
         {!activeRoom ? (
           <div className="flex-1 flex flex-col h-full overflow-y-auto bg-slate-900/50 p-6 md:p-8">
