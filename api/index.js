@@ -1,5 +1,9 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __esm = (fn, res, err) => function __init() {
   if (err) throw err[0];
   try {
@@ -12,6 +16,57 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/polyfill.ts
+var init_polyfill = __esm({
+  "src/polyfill.ts"() {
+    if (typeof globalThis !== "undefined") {
+      if (!globalThis.DOMMatrix) {
+        globalThis.DOMMatrix = class DOMMatrix {
+        };
+      }
+      if (!globalThis.ImageData) {
+        globalThis.ImageData = class ImageData {
+        };
+      }
+      if (!globalThis.Path2D) {
+        globalThis.Path2D = class Path2D {
+        };
+      }
+    }
+    if (typeof global !== "undefined") {
+      if (!global.DOMMatrix) {
+        global.DOMMatrix = class DOMMatrix {
+        };
+      }
+      if (!global.ImageData) {
+        global.ImageData = class ImageData {
+        };
+      }
+      if (!global.Path2D) {
+        global.Path2D = class Path2D {
+        };
+      }
+    }
+  }
+});
 
 // src/config/constants.ts
 var JWT_ACCESS_EXPIRES, JWT_REFRESH_EXPIRES, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX, CLIENT_URL, PORT, SYSTEM_PROMPTS;
@@ -158,20 +213,20 @@ Be encouraging but honest. Wrong answers are learning opportunities, not failure
 });
 
 // src/middleware/rateLimit.middleware.ts
-import rateLimit from "express-rate-limit";
-var isDev, apiLimiter, authLimiter, aiLimiter;
+var import_express_rate_limit, isDev, apiLimiter, authLimiter, aiLimiter;
 var init_rateLimit_middleware = __esm({
   "src/middleware/rateLimit.middleware.ts"() {
+    import_express_rate_limit = __toESM(require("express-rate-limit"), 1);
     init_constants();
     isDev = process.env.NODE_ENV === "development";
-    apiLimiter = isDev ? (req, res, next) => next() : rateLimit({
+    apiLimiter = isDev ? (req, res, next) => next() : (0, import_express_rate_limit.default)({
       windowMs: RATE_LIMIT_WINDOW_MS,
       max: RATE_LIMIT_MAX,
       message: { success: false, message: "Too many requests, please try again later." },
       standardHeaders: true,
       legacyHeaders: false
     });
-    authLimiter = isDev ? (req, res, next) => next() : rateLimit({
+    authLimiter = isDev ? (req, res, next) => next() : (0, import_express_rate_limit.default)({
       windowMs: 15 * 60 * 1e3,
       // 15 minutes
       max: 10,
@@ -179,7 +234,7 @@ var init_rateLimit_middleware = __esm({
       standardHeaders: true,
       legacyHeaders: false
     });
-    aiLimiter = isDev ? (req, res, next) => next() : rateLimit({
+    aiLimiter = isDev ? (req, res, next) => next() : (0, import_express_rate_limit.default)({
       windowMs: 60 * 1e3,
       // 1 minute
       max: 20,
@@ -226,15 +281,15 @@ var init_apiResponse = __esm({
 });
 
 // src/utils/logger.ts
-import winston from "winston";
-var combine, timestamp, printf, colorize, errors, logFormat, logger;
+var import_winston, combine, timestamp, printf, colorize, errors, logFormat, logger;
 var init_logger = __esm({
   "src/utils/logger.ts"() {
-    ({ combine, timestamp, printf, colorize, errors } = winston.format);
+    import_winston = __toESM(require("winston"), 1);
+    ({ combine, timestamp, printf, colorize, errors } = import_winston.default.format);
     logFormat = printf(({ level, message, timestamp: timestamp2, stack }) => {
       return `${timestamp2} [${level}]: ${stack || message}`;
     });
-    logger = winston.createLogger({
+    logger = import_winston.default.createLogger({
       level: process.env.NODE_ENV === "production" ? "info" : "debug",
       format: combine(
         timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
@@ -242,7 +297,7 @@ var init_logger = __esm({
         logFormat
       ),
       transports: [
-        new winston.transports.Console({
+        new import_winston.default.transports.Console({
           format: combine(colorize(), logFormat)
         })
       ]
@@ -296,11 +351,11 @@ var init_error_middleware = __esm({
 });
 
 // src/config/db.ts
-import { PrismaClient } from "@prisma/client";
-var prisma, db_default;
+var import_client, prisma, db_default;
 var init_db = __esm({
   "src/config/db.ts"() {
-    prisma = global.prisma || new PrismaClient({
+    import_client = require("@prisma/client");
+    prisma = global.prisma || new import_client.PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"]
     });
     if (process.env.NODE_ENV !== "production") {
@@ -311,13 +366,13 @@ var init_db = __esm({
 });
 
 // src/config/redis.ts
-import Redis from "ioredis";
-var REDIS_URL, redis, lastLoggedError, connectRedis, redis_default;
+var import_ioredis, REDIS_URL, redis, lastLoggedError, connectRedis, redis_default;
 var init_redis = __esm({
   "src/config/redis.ts"() {
+    import_ioredis = __toESM(require("ioredis"), 1);
     init_logger();
     REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-    redis = new Redis(REDIS_URL, {
+    redis = new import_ioredis.default(REDIS_URL, {
       maxRetriesPerRequest: 3,
       retryStrategy(times) {
         if (times > 3) {
@@ -363,18 +418,18 @@ var init_asyncHandler = __esm({
 });
 
 // src/services/token.service.ts
-import jwt from "jsonwebtoken";
-var generateTokens, verifyRefreshToken;
+var import_jsonwebtoken, generateTokens, verifyRefreshToken;
 var init_token_service = __esm({
   "src/services/token.service.ts"() {
+    import_jsonwebtoken = __toESM(require("jsonwebtoken"), 1);
     init_constants();
     generateTokens = async (userId) => {
-      const accessToken = jwt.sign(
+      const accessToken = import_jsonwebtoken.default.sign(
         { userId },
         process.env.JWT_ACCESS_SECRET,
         { expiresIn: JWT_ACCESS_EXPIRES }
       );
-      const refreshToken = jwt.sign(
+      const refreshToken = import_jsonwebtoken.default.sign(
         { userId },
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: JWT_REFRESH_EXPIRES }
@@ -382,18 +437,18 @@ var init_token_service = __esm({
       return { accessToken, refreshToken };
     };
     verifyRefreshToken = (token) => {
-      return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+      return import_jsonwebtoken.default.verify(token, process.env.JWT_REFRESH_SECRET);
     };
   }
 });
 
 // src/config/nodemailer.ts
-import nodemailer from "nodemailer";
-var transporter;
+var import_nodemailer, transporter;
 var init_nodemailer = __esm({
   "src/config/nodemailer.ts"() {
+    import_nodemailer = __toESM(require("nodemailer"), 1);
     init_logger();
-    transporter = nodemailer.createTransport({
+    transporter = import_nodemailer.default.createTransport({
       service: "gmail",
       host: "smtp.gmail.com",
       port: 587,
@@ -612,10 +667,10 @@ var init_email_service = __esm({
 });
 
 // src/services/otp.service.ts
-import bcrypt from "bcryptjs";
-var OTP_EXPIRY_MINUTES, MAX_ATTEMPTS, RESEND_COOLDOWN_SECONDS, generateSecureOTP, createAndSend, verify;
+var import_bcryptjs, OTP_EXPIRY_MINUTES, MAX_ATTEMPTS, RESEND_COOLDOWN_SECONDS, generateSecureOTP, createAndSend, verify;
 var init_otp_service = __esm({
   "src/services/otp.service.ts"() {
+    import_bcryptjs = __toESM(require("bcryptjs"), 1);
     init_db();
     init_redis();
     init_email_service();
@@ -647,7 +702,7 @@ var init_otp_service = __esm({
       if (process.env.NODE_ENV === "development") {
         logger.info(`[DEV OTP] OTP for ${email} (${type}) is: ${otp}`);
       }
-      const hashedOtp = await bcrypt.hash(otp, 10);
+      const hashedOtp = await import_bcryptjs.default.hash(otp, 10);
       await db_default.oTP.create({
         data: {
           email,
@@ -700,7 +755,7 @@ var init_otp_service = __esm({
         await db_default.oTP.delete({ where: { id: record.id } });
         throw new ApiError(400, "Too many failed attempts. Please request a new code.");
       }
-      const isValid = await bcrypt.compare(otp, record.hashedOtp);
+      const isValid = await import_bcryptjs.default.compare(otp, record.hashedOtp);
       if (!isValid) {
         await db_default.oTP.update({
           where: { id: record.id },
@@ -718,47 +773,47 @@ var init_otp_service = __esm({
 });
 
 // src/validations/auth.schema.ts
-import { z } from "zod";
-var registerSchema, loginSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema, changeEmailSchema, changePasswordSchema;
+var import_zod, registerSchema, loginSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema, changeEmailSchema, changePasswordSchema;
 var init_auth_schema = __esm({
   "src/validations/auth.schema.ts"() {
-    registerSchema = z.object({
-      firstName: z.string().min(1, "First name is required").max(50),
-      lastName: z.string().min(1, "Last name is required").max(50),
-      email: z.string().email("Invalid email address"),
-      password: z.string().min(8, "Password must be at least 8 characters").regex(/[A-Z]/, "Password must contain at least one uppercase letter").regex(/[0-9]/, "Password must contain at least one number")
+    import_zod = require("zod");
+    registerSchema = import_zod.z.object({
+      firstName: import_zod.z.string().min(1, "First name is required").max(50),
+      lastName: import_zod.z.string().min(1, "Last name is required").max(50),
+      email: import_zod.z.string().email("Invalid email address"),
+      password: import_zod.z.string().min(8, "Password must be at least 8 characters").regex(/[A-Z]/, "Password must contain at least one uppercase letter").regex(/[0-9]/, "Password must contain at least one number")
     });
-    loginSchema = z.object({
-      email: z.string().email("Invalid email address"),
-      password: z.string().min(1, "Password is required")
+    loginSchema = import_zod.z.object({
+      email: import_zod.z.string().email("Invalid email address"),
+      password: import_zod.z.string().min(1, "Password is required")
     });
-    verifyOtpSchema = z.object({
-      email: z.string().email("Invalid email address"),
-      otp: z.string().length(6, "OTP must be 6 digits")
+    verifyOtpSchema = import_zod.z.object({
+      email: import_zod.z.string().email("Invalid email address"),
+      otp: import_zod.z.string().length(6, "OTP must be 6 digits")
     });
-    forgotPasswordSchema = z.object({
-      email: z.string().email("Invalid email address")
+    forgotPasswordSchema = import_zod.z.object({
+      email: import_zod.z.string().email("Invalid email address")
     });
-    resetPasswordSchema = z.object({
-      email: z.string().email("Invalid email address"),
-      otp: z.string().length(6, "OTP must be 6 digits"),
-      newPassword: z.string().min(8, "Password must be at least 8 characters")
+    resetPasswordSchema = import_zod.z.object({
+      email: import_zod.z.string().email("Invalid email address"),
+      otp: import_zod.z.string().length(6, "OTP must be 6 digits"),
+      newPassword: import_zod.z.string().min(8, "Password must be at least 8 characters")
     });
-    changeEmailSchema = z.object({
-      newEmail: z.string().email("Invalid email address")
+    changeEmailSchema = import_zod.z.object({
+      newEmail: import_zod.z.string().email("Invalid email address")
     });
-    changePasswordSchema = z.object({
-      currentPassword: z.string().min(1, "Current password is required"),
-      newPassword: z.string().min(8, "New password must be at least 8 characters")
+    changePasswordSchema = import_zod.z.object({
+      currentPassword: import_zod.z.string().min(1, "Current password is required"),
+      newPassword: import_zod.z.string().min(8, "New password must be at least 8 characters")
     });
   }
 });
 
 // src/controllers/auth.controller.ts
-import bcrypt2 from "bcryptjs";
-var register, verifyEmail, login, refreshAccessToken, logout, forgotPassword, resetPassword, resendOtp, requestEmailChange, confirmEmailChange, changePassword;
+var import_bcryptjs2, register, verifyEmail, login, refreshAccessToken, logout, forgotPassword, resetPassword, resendOtp, requestEmailChange, confirmEmailChange, changePassword;
 var init_auth_controller = __esm({
   "src/controllers/auth.controller.ts"() {
+    import_bcryptjs2 = __toESM(require("bcryptjs"), 1);
     init_db();
     init_redis();
     init_asyncHandler();
@@ -770,7 +825,7 @@ var init_auth_controller = __esm({
       const { firstName, lastName, email, password } = registerSchema.parse(req.body);
       const existing = await db_default.user.findUnique({ where: { email } });
       if (existing) throw new ApiError(409, "Email already registered");
-      const hashedPassword = await bcrypt2.hash(password, 12);
+      const hashedPassword = await import_bcryptjs2.default.hash(password, 12);
       const user = await db_default.user.create({
         data: {
           firstName,
@@ -794,7 +849,7 @@ var init_auth_controller = __esm({
       const { accessToken, refreshToken } = await generateTokens(user.id);
       await db_default.user.update({
         where: { id: user.id },
-        data: { refreshToken: await bcrypt2.hash(refreshToken, 10) }
+        data: { refreshToken: await import_bcryptjs2.default.hash(refreshToken, 10) }
       });
       return res.status(200).json(ApiResponse.success({ user, accessToken, refreshToken }, "Email verified successfully"));
     });
@@ -815,12 +870,12 @@ var init_auth_controller = __esm({
       });
       if (!user || !user.password) throw new ApiError(401, "Invalid email or password");
       if (!user.isEmailVerified) throw new ApiError(403, "Please verify your email first");
-      const isMatch = await bcrypt2.compare(password, user.password);
+      const isMatch = await import_bcryptjs2.default.compare(password, user.password);
       if (!isMatch) throw new ApiError(401, "Invalid email or password");
       const { accessToken, refreshToken } = await generateTokens(user.id);
       await db_default.user.update({
         where: { id: user.id },
-        data: { refreshToken: await bcrypt2.hash(refreshToken, 10), lastActiveDate: /* @__PURE__ */ new Date() }
+        data: { refreshToken: await import_bcryptjs2.default.hash(refreshToken, 10), lastActiveDate: /* @__PURE__ */ new Date() }
       });
       await db_default.userSession.create({
         data: {
@@ -842,12 +897,12 @@ var init_auth_controller = __esm({
         select: { id: true, refreshToken: true }
       });
       if (!user || !user.refreshToken) throw new ApiError(401, "Invalid refresh token");
-      const isValid = await bcrypt2.compare(refreshToken, user.refreshToken);
+      const isValid = await import_bcryptjs2.default.compare(refreshToken, user.refreshToken);
       if (!isValid) throw new ApiError(401, "Invalid refresh token");
       const tokens = await generateTokens(user.id);
       await db_default.user.update({
         where: { id: user.id },
-        data: { refreshToken: await bcrypt2.hash(tokens.refreshToken, 10) }
+        data: { refreshToken: await import_bcryptjs2.default.hash(tokens.refreshToken, 10) }
       });
       return res.status(200).json(ApiResponse.success(tokens, "Tokens refreshed"));
     });
@@ -870,7 +925,7 @@ var init_auth_controller = __esm({
     resetPassword = asyncHandler(async (req, res) => {
       const { email, otp, newPassword } = resetPasswordSchema.parse(req.body);
       await verify(email, otp, "PASSWORD_RESET");
-      const hashedPassword = await bcrypt2.hash(newPassword, 12);
+      const hashedPassword = await import_bcryptjs2.default.hash(newPassword, 12);
       await db_default.user.update({
         where: { email },
         data: { password: hashedPassword, refreshToken: null }
@@ -912,9 +967,9 @@ var init_auth_controller = __esm({
       const userId = req.user.id;
       const user = await db_default.user.findUnique({ where: { id: userId }, select: { password: true } });
       if (!user?.password) throw new ApiError(400, "No password set for this account");
-      const isMatch = await bcrypt2.compare(currentPassword, user.password);
+      const isMatch = await import_bcryptjs2.default.compare(currentPassword, user.password);
       if (!isMatch) throw new ApiError(401, "Current password is incorrect");
-      const hashedPassword = await bcrypt2.hash(newPassword, 12);
+      const hashedPassword = await import_bcryptjs2.default.hash(newPassword, 12);
       await db_default.user.update({ where: { id: userId }, data: { password: hashedPassword } });
       return res.status(200).json(ApiResponse.success(null, "Password changed successfully"));
     });
@@ -922,10 +977,10 @@ var init_auth_controller = __esm({
 });
 
 // src/middleware/auth.middleware.ts
-import jwt2 from "jsonwebtoken";
-var authenticate;
+var import_jsonwebtoken2, authenticate;
 var init_auth_middleware = __esm({
   "src/middleware/auth.middleware.ts"() {
+    import_jsonwebtoken2 = __toESM(require("jsonwebtoken"), 1);
     init_db();
     init_apiResponse();
     authenticate = async (req, _res, next) => {
@@ -935,7 +990,7 @@ var init_auth_middleware = __esm({
           throw new ApiError(401, "Access token required");
         }
         const token = authHeader.split(" ")[1];
-        const decoded = jwt2.verify(token, process.env.JWT_ACCESS_SECRET);
+        const decoded = import_jsonwebtoken2.default.verify(token, process.env.JWT_ACCESS_SECRET);
         const user = await db_default.user.findUnique({
           where: { id: decoded.userId },
           select: {
@@ -967,10 +1022,10 @@ var init_auth_middleware = __esm({
 });
 
 // src/middleware/validate.middleware.ts
-import { ZodError } from "zod";
-var validate;
+var import_zod2, validate;
 var init_validate_middleware = __esm({
   "src/middleware/validate.middleware.ts"() {
+    import_zod2 = require("zod");
     init_apiResponse();
     validate = (schema) => {
       return (req, _res, next) => {
@@ -978,7 +1033,7 @@ var init_validate_middleware = __esm({
           schema.parse(req.body);
           next();
         } catch (err) {
-          if (err instanceof ZodError) {
+          if (err instanceof import_zod2.ZodError) {
             const messages = err.errors.map((e) => e.message).join(", ");
             next(new ApiError(400, messages));
           } else {
@@ -991,20 +1046,20 @@ var init_validate_middleware = __esm({
 });
 
 // src/routes/auth.routes.ts
-import { Router } from "express";
-import passport from "passport";
-import jwt3 from "jsonwebtoken";
-import bcrypt3 from "bcryptjs";
-var router, auth_routes_default;
+var import_express, import_passport, import_jsonwebtoken3, import_bcryptjs3, router, auth_routes_default;
 var init_auth_routes = __esm({
   "src/routes/auth.routes.ts"() {
+    import_express = require("express");
+    import_passport = __toESM(require("passport"), 1);
+    import_jsonwebtoken3 = __toESM(require("jsonwebtoken"), 1);
     init_db();
+    import_bcryptjs3 = __toESM(require("bcryptjs"), 1);
     init_auth_controller();
     init_auth_middleware();
     init_validate_middleware();
     init_rateLimit_middleware();
     init_auth_schema();
-    router = Router();
+    router = (0, import_express.Router)();
     router.post("/register", authLimiter, validate(registerSchema), register);
     router.post("/verify-email", authLimiter, validate(verifyOtpSchema), verifyEmail);
     router.post("/login", authLimiter, validate(loginSchema), login);
@@ -1018,7 +1073,7 @@ var init_auth_routes = __esm({
     router.post("/change-password", authenticate, changePassword);
     router.get(
       "/google",
-      passport.authenticate("google", {
+      import_passport.default.authenticate("google", {
         scope: ["profile", "email"],
         session: false,
         prompt: "select_account"
@@ -1026,24 +1081,24 @@ var init_auth_routes = __esm({
     );
     router.get(
       "/google/callback",
-      passport.authenticate("google", {
+      import_passport.default.authenticate("google", {
         session: false,
         failureRedirect: `${process.env.CLIENT_URL}/login?error=google_auth_failed`
       }),
       async (req, res) => {
         try {
           const user = req.user;
-          const accessToken = jwt3.sign(
+          const accessToken = import_jsonwebtoken3.default.sign(
             { id: user.id, email: user.email },
             process.env.JWT_ACCESS_SECRET,
             { expiresIn: "15m" }
           );
-          const refreshToken = jwt3.sign(
+          const refreshToken = import_jsonwebtoken3.default.sign(
             { id: user.id },
             process.env.JWT_REFRESH_SECRET,
             { expiresIn: "7d" }
           );
-          const hashedRefresh = await bcrypt3.hash(refreshToken, 10);
+          const hashedRefresh = await import_bcryptjs3.default.hash(refreshToken, 10);
           await db_default.user.update({
             where: { id: user.id },
             data: {
@@ -1074,16 +1129,16 @@ var init_auth_routes = __esm({
 });
 
 // src/config/cloudinary.ts
-import { v2 as cloudinary } from "cloudinary";
-var cloudinary_default;
+var import_cloudinary, cloudinary_default;
 var init_cloudinary = __esm({
   "src/config/cloudinary.ts"() {
-    cloudinary.config({
+    import_cloudinary = require("cloudinary");
+    import_cloudinary.v2.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET
     });
-    cloudinary_default = cloudinary;
+    cloudinary_default = import_cloudinary.v2;
   }
 });
 
@@ -1268,16 +1323,16 @@ var init_user_controller = __esm({
 });
 
 // src/middleware/upload.middleware.ts
-import multer from "multer";
-import path from "path";
-var storage, fileFilter, upload;
+var import_multer, import_path, storage, fileFilter, upload;
 var init_upload_middleware = __esm({
   "src/middleware/upload.middleware.ts"() {
+    import_multer = __toESM(require("multer"), 1);
+    import_path = __toESM(require("path"), 1);
     init_apiResponse();
-    storage = multer.memoryStorage();
+    storage = import_multer.default.memoryStorage();
     fileFilter = (_req, file, cb) => {
       const allowedTypes = /jpeg|jpg|png|gif|webp|svg/;
-      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const extname = allowedTypes.test(import_path.default.extname(file.originalname).toLowerCase());
       const mimetype = allowedTypes.test(file.mimetype);
       if (extname && mimetype) {
         cb(null, true);
@@ -1285,7 +1340,7 @@ var init_upload_middleware = __esm({
         cb(new ApiError(400, "Only image files (JPEG, PNG, GIF, WebP, SVG) are allowed"));
       }
     };
-    upload = multer({
+    upload = (0, import_multer.default)({
       storage,
       fileFilter,
       limits: { fileSize: 5 * 1024 * 1024 }
@@ -1295,60 +1350,60 @@ var init_upload_middleware = __esm({
 });
 
 // src/validations/user.schema.ts
-import { z as z2 } from "zod";
-var updateProfileSchema, onboardingSchema, updatePreferencesSchema;
+var import_zod3, updateProfileSchema, onboardingSchema, updatePreferencesSchema;
 var init_user_schema = __esm({
   "src/validations/user.schema.ts"() {
-    updateProfileSchema = z2.object({
-      firstName: z2.string().min(1).max(50).optional(),
-      lastName: z2.string().min(1).max(50).optional(),
-      bio: z2.string().max(500).optional(),
-      location: z2.string().max(100).optional(),
-      title: z2.string().max(100).optional(),
-      goal: z2.string().optional(),
-      level: z2.string().optional(),
-      topics: z2.array(z2.string()).optional()
+    import_zod3 = require("zod");
+    updateProfileSchema = import_zod3.z.object({
+      firstName: import_zod3.z.string().min(1).max(50).optional(),
+      lastName: import_zod3.z.string().min(1).max(50).optional(),
+      bio: import_zod3.z.string().max(500).optional(),
+      location: import_zod3.z.string().max(100).optional(),
+      title: import_zod3.z.string().max(100).optional(),
+      goal: import_zod3.z.string().optional(),
+      level: import_zod3.z.string().optional(),
+      topics: import_zod3.z.array(import_zod3.z.string()).optional()
     });
-    onboardingSchema = z2.object({
-      goal: z2.string().min(1, "Learning goal is required"),
-      level: z2.enum(["beginner", "intermediate", "advanced"]),
-      topics: z2.array(z2.string()).min(1, "Select at least one topic")
+    onboardingSchema = import_zod3.z.object({
+      goal: import_zod3.z.string().min(1, "Learning goal is required"),
+      level: import_zod3.z.enum(["beginner", "intermediate", "advanced"]),
+      topics: import_zod3.z.array(import_zod3.z.string()).min(1, "Select at least one topic")
     });
-    updatePreferencesSchema = z2.object({
-      theme: z2.string().optional(),
-      language: z2.string().optional(),
-      aiResponseLang: z2.string().optional(),
-      timezone: z2.string().optional(),
-      dateFormat: z2.string().optional(),
-      codeCommentsLang: z2.string().optional(),
-      rtlSupport: z2.boolean().optional(),
-      voiceEnabled: z2.boolean().optional(),
-      selectedVoice: z2.string().optional(),
-      voiceSpeed: z2.number().min(0.5).max(2).optional(),
-      autoPlayVoice: z2.boolean().optional(),
-      micSensitivity: z2.number().min(0).max(100).optional(),
-      notifLearning: z2.boolean().optional(),
-      notifRoadmap: z2.boolean().optional(),
-      notifProject: z2.boolean().optional(),
-      notifAchievement: z2.boolean().optional(),
-      notifAiUsage: z2.boolean().optional(),
-      notifWeekly: z2.boolean().optional(),
-      emailDigest: z2.enum(["daily", "weekly", "none"]).optional()
+    updatePreferencesSchema = import_zod3.z.object({
+      theme: import_zod3.z.string().optional(),
+      language: import_zod3.z.string().optional(),
+      aiResponseLang: import_zod3.z.string().optional(),
+      timezone: import_zod3.z.string().optional(),
+      dateFormat: import_zod3.z.string().optional(),
+      codeCommentsLang: import_zod3.z.string().optional(),
+      rtlSupport: import_zod3.z.boolean().optional(),
+      voiceEnabled: import_zod3.z.boolean().optional(),
+      selectedVoice: import_zod3.z.string().optional(),
+      voiceSpeed: import_zod3.z.number().min(0.5).max(2).optional(),
+      autoPlayVoice: import_zod3.z.boolean().optional(),
+      micSensitivity: import_zod3.z.number().min(0).max(100).optional(),
+      notifLearning: import_zod3.z.boolean().optional(),
+      notifRoadmap: import_zod3.z.boolean().optional(),
+      notifProject: import_zod3.z.boolean().optional(),
+      notifAchievement: import_zod3.z.boolean().optional(),
+      notifAiUsage: import_zod3.z.boolean().optional(),
+      notifWeekly: import_zod3.z.boolean().optional(),
+      emailDigest: import_zod3.z.enum(["daily", "weekly", "none"]).optional()
     });
   }
 });
 
 // src/routes/user.routes.ts
-import { Router as Router2 } from "express";
-var router2, user_routes_default;
+var import_express2, router2, user_routes_default;
 var init_user_routes = __esm({
   "src/routes/user.routes.ts"() {
+    import_express2 = require("express");
     init_user_controller();
     init_auth_middleware();
     init_upload_middleware();
     init_validate_middleware();
     init_user_schema();
-    router2 = Router2();
+    router2 = (0, import_express2.Router)();
     router2.use(authenticate);
     router2.get("/profile", getProfile);
     router2.put("/profile", validate(updateProfileSchema), updateProfile);
@@ -1490,36 +1545,36 @@ var init_chat_controller = __esm({
 });
 
 // src/validations/chat.schema.ts
-import { z as z3 } from "zod";
-var sendMessageSchema, createChatSchema;
+var import_zod4, sendMessageSchema, createChatSchema;
 var init_chat_schema = __esm({
   "src/validations/chat.schema.ts"() {
-    sendMessageSchema = z3.object({
-      chatId: z3.string().min(1, "Chat ID is required"),
-      content: z3.string().min(1, "Message content is required"),
-      provider: z3.string().optional().default("auto"),
-      model: z3.string().optional(),
-      mode: z3.string().optional()
+    import_zod4 = require("zod");
+    sendMessageSchema = import_zod4.z.object({
+      chatId: import_zod4.z.string().min(1, "Chat ID is required"),
+      content: import_zod4.z.string().min(1, "Message content is required"),
+      provider: import_zod4.z.string().optional().default("auto"),
+      model: import_zod4.z.string().optional(),
+      mode: import_zod4.z.string().optional()
     });
-    createChatSchema = z3.object({
-      title: z3.string().optional().default("New Chat"),
-      mode: z3.enum(["LEARNING", "CODE_HELPER", "PROJECT_BUILDER", "ROADMAP_BUILDER", "STUDY_PLANNER", "INTERVIEW_PREP", "QUIZ", "FREE_CHAT"]).optional().default("FREE_CHAT"),
-      aiProvider: z3.string().optional().default("auto"),
-      folderId: z3.string().optional()
+    createChatSchema = import_zod4.z.object({
+      title: import_zod4.z.string().optional().default("New Chat"),
+      mode: import_zod4.z.enum(["LEARNING", "CODE_HELPER", "PROJECT_BUILDER", "ROADMAP_BUILDER", "STUDY_PLANNER", "INTERVIEW_PREP", "QUIZ", "FREE_CHAT"]).optional().default("FREE_CHAT"),
+      aiProvider: import_zod4.z.string().optional().default("auto"),
+      folderId: import_zod4.z.string().optional()
     });
   }
 });
 
 // src/routes/chat.routes.ts
-import { Router as Router3 } from "express";
-var router3, chat_routes_default;
+var import_express3, router3, chat_routes_default;
 var init_chat_routes = __esm({
   "src/routes/chat.routes.ts"() {
+    import_express3 = require("express");
     init_chat_controller();
     init_auth_middleware();
     init_validate_middleware();
     init_chat_schema();
-    router3 = Router3();
+    router3 = (0, import_express3.Router)();
     router3.use(authenticate);
     router3.get("/", getChats);
     router3.post("/", validate(createChatSchema), createChat);
@@ -1735,13 +1790,33 @@ var init_message_controller = __esm({
           totalTokens: aiResult.tokens.total
         }
       });
+      let updatedTitle = chat.title;
+      if (chat.title === "New Chat" || chat.title === "Untitled Chat") {
+        try {
+          const titlePrompt = `Based on the following first message in a conversation, generate a short, concise, and clean 3-5 word chat title that captures the core topic. Do not include quotes or surrounding punctuation.
+Message: "${content}"`;
+          const titleResult = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{ role: "user", content: titlePrompt }],
+            mode: "FREE_CHAT"
+          });
+          const generatedTitle = titleResult.content.replace(/["']/g, "").trim();
+          if (generatedTitle && generatedTitle.length > 2) {
+            updatedTitle = generatedTitle;
+          }
+        } catch (err) {
+          console.error("Failed to generate AI chat title, falling back:", err.message);
+          updatedTitle = content.slice(0, 40) + "...";
+        }
+      }
       await db_default.chat.update({
         where: { id: chatId },
         data: {
           messageCount: { increment: 2 },
           lastMessage: aiResult.content.slice(0, 100),
           lastMessageAt: /* @__PURE__ */ new Date(),
-          ...chat.title === "New Chat" && { title: content.slice(0, 50) }
+          title: updatedTitle
         }
       });
       await db_default.user.update({
@@ -1833,16 +1908,16 @@ var init_message_controller = __esm({
 });
 
 // src/routes/message.routes.ts
-import { Router as Router4 } from "express";
-var router4, message_routes_default;
+var import_express4, router4, message_routes_default;
 var init_message_routes = __esm({
   "src/routes/message.routes.ts"() {
+    import_express4 = require("express");
     init_message_controller();
     init_auth_middleware();
     init_rateLimit_middleware();
     init_validate_middleware();
     init_chat_schema();
-    router4 = Router4();
+    router4 = (0, import_express4.Router)();
     router4.use(authenticate);
     router4.post("/send", aiLimiter, validate(sendMessageSchema), sendMessage);
     router4.post("/stream", aiLimiter, streamMessage);
@@ -1853,26 +1928,26 @@ var init_message_routes = __esm({
 });
 
 // src/services/encryption.service.ts
-import CryptoJS from "crypto-js";
-var KEY, IV, encrypt, decrypt, keyPreview;
+var import_crypto_js, KEY, IV, encrypt, decrypt, keyPreview;
 var init_encryption_service = __esm({
   "src/services/encryption.service.ts"() {
-    KEY = CryptoJS.enc.Utf8.parse(process.env.ENCRYPTION_KEY || "bodhai_default_key_32chars_here!");
-    IV = CryptoJS.enc.Utf8.parse(process.env.ENCRYPTION_IV || "bodhai_iv_16char");
+    import_crypto_js = __toESM(require("crypto-js"), 1);
+    KEY = import_crypto_js.default.enc.Utf8.parse(process.env.ENCRYPTION_KEY || "bodhai_default_key_32chars_here!");
+    IV = import_crypto_js.default.enc.Utf8.parse(process.env.ENCRYPTION_IV || "bodhai_iv_16char");
     encrypt = (plain) => {
-      return CryptoJS.AES.encrypt(plain, KEY, {
+      return import_crypto_js.default.AES.encrypt(plain, KEY, {
         iv: IV,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7
+        mode: import_crypto_js.default.mode.CBC,
+        padding: import_crypto_js.default.pad.Pkcs7
       }).toString();
     };
     decrypt = (encrypted) => {
-      const bytes = CryptoJS.AES.decrypt(encrypted, KEY, {
+      const bytes = import_crypto_js.default.AES.decrypt(encrypted, KEY, {
         iv: IV,
-        mode: CryptoJS.mode.CBC,
-        padding: CryptoJS.pad.Pkcs7
+        mode: import_crypto_js.default.mode.CBC,
+        padding: import_crypto_js.default.pad.Pkcs7
       });
-      return bytes.toString(CryptoJS.enc.Utf8);
+      return bytes.toString(import_crypto_js.default.enc.Utf8);
     };
     keyPreview = (plain) => {
       if (plain.length < 10) return "****";
@@ -1882,29 +1957,29 @@ var init_encryption_service = __esm({
 });
 
 // src/validations/apikey.schema.ts
-import { z as z4 } from "zod";
-var addKeySchema, updateKeySchema, routingSchema;
+var import_zod5, addKeySchema, updateKeySchema, routingSchema;
 var init_apikey_schema = __esm({
   "src/validations/apikey.schema.ts"() {
-    addKeySchema = z4.object({
-      provider: z4.enum(["OPENAI", "ANTHROPIC", "GEMINI", "MISTRAL", "GROQ", "TOGETHER", "COHERE", "CUSTOM"]),
-      apiKey: z4.string().min(10, "API key is too short"),
-      label: z4.string().optional(),
-      customEndpoint: z4.string().url().optional(),
-      customModel: z4.string().optional()
+    import_zod5 = require("zod");
+    addKeySchema = import_zod5.z.object({
+      provider: import_zod5.z.enum(["OPENAI", "ANTHROPIC", "GEMINI", "MISTRAL", "GROQ", "TOGETHER", "COHERE", "CUSTOM"]),
+      apiKey: import_zod5.z.string().min(10, "API key is too short"),
+      label: import_zod5.z.string().optional(),
+      customEndpoint: import_zod5.z.string().url().optional(),
+      customModel: import_zod5.z.string().optional()
     });
-    updateKeySchema = z4.object({
-      label: z4.string().optional(),
-      isActive: z4.boolean().optional(),
-      customEndpoint: z4.string().url().optional(),
-      customModel: z4.string().optional()
+    updateKeySchema = import_zod5.z.object({
+      label: import_zod5.z.string().optional(),
+      isActive: import_zod5.z.boolean().optional(),
+      customEndpoint: import_zod5.z.string().url().optional(),
+      customModel: import_zod5.z.string().optional()
     });
-    routingSchema = z4.object({
-      routeLearning: z4.string().optional(),
-      routeCode: z4.string().optional(),
-      routeRoadmap: z4.string().optional(),
-      routePlanner: z4.string().optional(),
-      routeProject: z4.string().optional()
+    routingSchema = import_zod5.z.object({
+      routeLearning: import_zod5.z.string().optional(),
+      routeCode: import_zod5.z.string().optional(),
+      routeRoadmap: import_zod5.z.string().optional(),
+      routePlanner: import_zod5.z.string().optional(),
+      routeProject: import_zod5.z.string().optional()
     });
   }
 });
@@ -2117,15 +2192,15 @@ var init_apikey_controller = __esm({
 });
 
 // src/routes/apikey.routes.ts
-import { Router as Router5 } from "express";
-var router5, apikey_routes_default;
+var import_express5, router5, apikey_routes_default;
 var init_apikey_routes = __esm({
   "src/routes/apikey.routes.ts"() {
+    import_express5 = require("express");
     init_apikey_controller();
     init_auth_middleware();
     init_validate_middleware();
     init_apikey_schema();
-    router5 = Router5();
+    router5 = (0, import_express5.Router)();
     router5.use(authenticate);
     router5.get("/", getApiKeys);
     router5.post("/", validate(addKeySchema), addApiKey);
@@ -2424,13 +2499,13 @@ Only return JSON. Do not include markdown code block syntax.`;
 });
 
 // src/routes/roadmap.routes.ts
-import { Router as Router6 } from "express";
-var router6, roadmap_routes_default;
+var import_express6, router6, roadmap_routes_default;
 var init_roadmap_routes = __esm({
   "src/routes/roadmap.routes.ts"() {
+    import_express6 = require("express");
     init_roadmap_controller();
     init_auth_middleware();
-    router6 = Router6();
+    router6 = (0, import_express6.Router)();
     router6.use(authenticate);
     router6.get("/", getRoadmap);
     router6.get("/suggest-focus", suggestFocusAreas);
@@ -2547,13 +2622,13 @@ var init_project_controller = __esm({
 });
 
 // src/routes/project.routes.ts
-import { Router as Router7 } from "express";
-var router7, project_routes_default;
+var import_express7, router7, project_routes_default;
 var init_project_routes = __esm({
   "src/routes/project.routes.ts"() {
+    import_express7 = require("express");
     init_project_controller();
     init_auth_middleware();
-    router7 = Router7();
+    router7 = (0, import_express7.Router)();
     router7.use(authenticate);
     router7.get("/", getProjects);
     router7.post("/", createProject);
@@ -2686,13 +2761,13 @@ var init_planner_controller = __esm({
 });
 
 // src/routes/planner.routes.ts
-import { Router as Router8 } from "express";
-var router8, planner_routes_default;
+var import_express8, router8, planner_routes_default;
 var init_planner_routes = __esm({
   "src/routes/planner.routes.ts"() {
+    import_express8 = require("express");
     init_planner_controller();
     init_auth_middleware();
-    router8 = Router8();
+    router8 = (0, import_express8.Router)();
     router8.use(authenticate);
     router8.get("/sessions", getStudySessions);
     router8.post("/sessions", createStudySession);
@@ -2830,13 +2905,13 @@ var init_progress_controller = __esm({
 });
 
 // src/routes/progress.routes.ts
-import { Router as Router9 } from "express";
-var router9, progress_routes_default;
+var import_express9, router9, progress_routes_default;
 var init_progress_routes = __esm({
   "src/routes/progress.routes.ts"() {
+    import_express9 = require("express");
     init_progress_controller();
     init_auth_middleware();
-    router9 = Router9();
+    router9 = (0, import_express9.Router)();
     router9.use(authenticate);
     router9.get("/", getProgress);
     router9.get("/heatmap", getActivityHeatmap);
@@ -2907,13 +2982,13 @@ var init_folder_controller = __esm({
 });
 
 // src/routes/folder.routes.ts
-import { Router as Router10 } from "express";
-var router10, folder_routes_default;
+var import_express10, router10, folder_routes_default;
 var init_folder_routes = __esm({
   "src/routes/folder.routes.ts"() {
+    import_express10 = require("express");
     init_folder_controller();
     init_auth_middleware();
-    router10 = Router10();
+    router10 = (0, import_express10.Router)();
     router10.use(authenticate);
     router10.get("/", getFolders);
     router10.post("/", createFolder);
@@ -3039,21 +3114,1188 @@ var init_settings_controller = __esm({
   }
 });
 
+// src/services/cron.service.ts
+var import_node_cron, baseTemplate2, runWeeklyReportGenerator;
+var init_cron_service = __esm({
+  "src/services/cron.service.ts"() {
+    import_node_cron = __toESM(require("node-cron"), 1);
+    init_db();
+    init_ai_router_service();
+    init_nodemailer();
+    init_logger();
+    baseTemplate2 = (content) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BodhAI Weekly Progress Report</title>
+</head>
+<body style="margin:0;padding:0; background-color:#F8FAFC; font-family:'Helvetica Neue', Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:16px; border:1px solid #E2E8F0; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.06);">
+          <tr>
+            <td style="background: linear-gradient(135deg, #1E3A5F 0%,#2563EB 100%); padding:32px 40px; text-align:center;">
+              <table width="100%">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; background:rgba(255,255,255,0.15); border-radius:12px; padding:10px 20px;">
+                      <span style="color:#fff; font-size:22px; font-weight:700; letter-spacing:-0.5px;">BodhAI Weekly</span>
+                    </div>
+                    <p style="color: rgba(255,255,255,0.7); font-size:13px; margin:8px 0 0;">AI Learning Report & Performance Insights</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px 40px 32px;">
+              ${content}
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top: 1px solid #E2E8F0; padding:24px 40px; text-align:center; background:#F8FAFC;">
+              <p style="color:#94A3B8; font-size:12px; line-height:1.6; margin:0;">
+                \xA9 2024 BodhAI Cognitive Systems<br/>
+                You are receiving this because you signed up for weekly progress reports.<br/>
+                <a href="${process.env.CLIENT_URL || "http://localhost:8080"}/settings" style="color:#2563EB; text-decoration:none;">Unsubscribe</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+    runWeeklyReportGenerator = async () => {
+      logger.info("[CRON] Starting weekly progress report generation...");
+      const users = await db_default.user.findMany({
+        include: {
+          roadmaps: {
+            where: { isActive: true },
+            include: {
+              milestones: true
+            }
+          },
+          quizAttempts: {
+            where: {
+              createdAt: {
+                gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3)
+                // last 7 days
+              }
+            }
+          },
+          projects: {
+            include: {
+              steps: {
+                where: {
+                  validatedAt: {
+                    gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3)
+                  },
+                  status: "COMPLETED"
+                }
+              }
+            }
+          }
+        }
+      });
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      for (const user of users) {
+        try {
+          const activeRoadmap = user.roadmaps[0];
+          const roadmapTitle = activeRoadmap ? activeRoadmap.title : "General Learning Path";
+          const weeklyCompletedMilestones = activeRoadmap ? activeRoadmap.milestones.filter(
+            (m) => m.status === "COMPLETED" && m.completedAt && m.completedAt >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3)
+          ) : [];
+          const completedCount = weeklyCompletedMilestones.length;
+          const passedQuizzes = user.quizAttempts.filter((q) => q.passed).length;
+          let completedStepsCount = 0;
+          user.projects.forEach((proj) => {
+            completedStepsCount += proj.steps.length;
+          });
+          const messagesCount = await db_default.message.count({
+            where: {
+              userId: user.id,
+              role: "USER",
+              createdAt: {
+                gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3)
+              }
+            }
+          });
+          logger.info(
+            `[CRON] Generating report for user=${user.email} (Milestones=${completedCount}, Quizzes=${passedQuizzes}, Steps=${completedStepsCount}, Chats=${messagesCount})`
+          );
+          let aiReportHtml = "";
+          if (rawKey) {
+            const prompt = `Generate a beautiful, encouraging weekly learning progress report for the student: ${user.firstName || "Learner"}.
+Goal/Roadmap: "${roadmapTitle}"
+
+Activity this past week:
+- Roadmaps Milestones Completed: ${completedCount}
+- Passed Quizzes: ${passedQuizzes}
+- Project Implementation Steps Completed: ${completedStepsCount}
+- Mentorship Chat Messages Sent: ${messagesCount}
+
+Generate a personalized weekly progress report. Include:
+1. A summary of achievements.
+2. Constructive, actionable learning feedback.
+3. 3 specific focus areas/tips for next week.
+
+The output must be formatted as raw HTML suitable for insertion inside an email body. Do not include markdown code block tags (\`\`\`html or \`\`\`). Use clean headings (<h2>, <h3>), paragraphs (<p>), list items (<li>), and inline styles with modern, appealing colors (e.g. primary deep blues #1E3A5F, success greens #10B981) to make it look premium.`;
+            const aiResult = await callAI({
+              provider: selectedProvider,
+              rawKey,
+              messages: [{ role: "user", content: prompt }],
+              mode: "FREE_CHAT"
+            });
+            aiReportHtml = aiResult.content.replace(/```html/g, "").replace(/```/g, "").trim();
+          } else {
+            aiReportHtml = `
+          <h2 style="color: #1E3A5F; margin: 0 0 12px;">Weekly Progress Report</h2>
+          <p style="color: #64748B; font-size: 15px; line-height: 1.6;">
+            Hi ${user.firstName || "Learner"}, here is your learning progress overview for this week on <strong>${roadmapTitle}</strong>:
+          </p>
+          <ul style="color: #475569; font-size: 14px; line-height: 1.8;">
+            <li>\u{1F3C1} <strong>Completed Milestones:</strong> ${completedCount}</li>
+            <li>\u{1F9EA} <strong>Quizzes Passed:</strong> ${passedQuizzes}</li>
+            <li>\u{1F6E0}\uFE0F <strong>Project Steps Completed:</strong> ${completedStepsCount}</li>
+            <li>\u{1F4AC} <strong>Mentorship Interactions:</strong> ${messagesCount} messages</li>
+          </ul>
+          <h3 style="color: #2563EB; margin: 20px 0 10px;">Tips for Next Week:</h3>
+          <ol style="color: #475569; font-size: 14px; line-height: 1.8;">
+            <li>Keep utilizing the BodhAI chat to clarify complex code blocks.</li>
+            <li>Try to take a quiz at the end of each milestone to test your understanding.</li>
+            <li>Build on your project steps to validate your knowledge.</li>
+          </ol>
+        `;
+          }
+          await transporter.sendMail({
+            from: ` "BodhAI Weekly" <${process.env.GMAIL_USER}> `,
+            to: user.email,
+            subject: `\u{1F4C8} Your BodhAI Weekly Progress Report \u2014 ${(/* @__PURE__ */ new Date()).toLocaleDateString()}`,
+            html: baseTemplate2(aiReportHtml)
+          });
+          logger.info(`[CRON] Weekly report email sent successfully to ${user.email}`);
+        } catch (err) {
+          logger.error(`[CRON] Failed to generate weekly report for ${user.email}: ${err.message}`);
+        }
+      }
+    };
+  }
+});
+
 // src/routes/settings.routes.ts
-import { Router as Router11 } from "express";
-var router11, settings_routes_default;
+var import_express11, router11, settings_routes_default;
 var init_settings_routes = __esm({
   "src/routes/settings.routes.ts"() {
+    import_express11 = require("express");
     init_settings_controller();
     init_auth_middleware();
-    router11 = Router11();
+    init_cron_service();
+    router11 = (0, import_express11.Router)();
     router11.use(authenticate);
     router11.get("/", getSettings);
     router11.put("/voice", updateVoiceSettings);
     router11.put("/language", updateLanguageSettings);
     router11.put("/notifications", updateNotificationSettings);
     router11.put("/appearance", updateAppearanceSettings);
+    router11.post("/trigger-weekly-report", async (req, res, next) => {
+      try {
+        await runWeeklyReportGenerator();
+        res.json({ success: true, message: "Weekly progress report triggered successfully" });
+      } catch (err) {
+        next(err);
+      }
+    });
     settings_routes_default = router11;
+  }
+});
+
+// src/controllers/quiz.controller.ts
+var getMilestoneQuiz, submitQuizAnswers;
+var init_quiz_controller = __esm({
+  "src/controllers/quiz.controller.ts"() {
+    init_db();
+    init_asyncHandler();
+    init_apiResponse();
+    init_ai_router_service();
+    getMilestoneQuiz = asyncHandler(async (req, res) => {
+      const { milestoneId } = req.params;
+      const milestone = await db_default.roadmapMilestone.findUnique({
+        where: { id: milestoneId }
+      });
+      if (!milestone) {
+        throw new ApiError(404, "Milestone not found");
+      }
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      let questions = [];
+      if (rawKey) {
+        try {
+          const prompt = `Generate exactly 10 multiple-choice quiz questions to test a student's knowledge on this topic:
+Milestone: "${milestone.title}"
+Description: "${milestone.description || ""}"
+Skills: ${milestone.skillsGained.join(", ")}
+
+Output exactly a JSON array of objects. Do not include markdown code block syntax or any other text.
+Each object must have the following keys:
+- questionText: string (the test question)
+- options: array of 4 strings (the options)
+- correctIndex: number (the 0-based index of the correct option: 0, 1, 2, or 3)
+- explanation: string (why the answer is correct)
+
+Example:
+[
+  {
+    "questionText": "What does CSS stand for?",
+    "options": ["Computer Style Sheets", "Cascading Style Sheets", "Creative Style Sheets", "Colorful Style Sheets"],
+    "correctIndex": 1,
+    "explanation": "CSS stands for Cascading Style Sheets."
+  }
+]`;
+          const aiResult = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{ role: "user", content: prompt }],
+            mode: "FREE_CHAT"
+            // Use standard/free chat mode
+          });
+          const cleanJson = aiResult.content.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(cleanJson);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            questions = parsed.slice(0, 10);
+          }
+        } catch (err) {
+          console.error("Failed to generate AI quiz, falling back to mock:", err.message);
+        }
+      }
+      if (questions.length === 0) {
+        for (let i = 1; i <= 10; i++) {
+          questions.push({
+            questionText: `Test Question ${i} for milestone: "${milestone.title}"`,
+            options: [
+              `Option A: Core concept validation ${i}`,
+              `Option B: Practical application study ${i}`,
+              `Option C: Advanced architecture topic ${i}`,
+              `Option D: None of the above`
+            ],
+            correctIndex: i % 4,
+            explanation: `This is a fallback explanation for question ${i} regarding ${milestone.title}.`
+          });
+        }
+      }
+      return res.json(ApiResponse.success({ milestoneId, questions }));
+    });
+    submitQuizAnswers = asyncHandler(async (req, res) => {
+      const { milestoneId } = req.params;
+      const { answers, questions } = req.body;
+      const userId = req.user.id;
+      if (!Array.isArray(answers) || !Array.isArray(questions) || answers.length !== questions.length) {
+        throw new ApiError(400, "Invalid quiz submission format");
+      }
+      const milestone = await db_default.roadmapMilestone.findFirst({
+        where: { id: milestoneId },
+        include: { roadmap: true }
+      });
+      if (!milestone || milestone.roadmap.userId !== userId) {
+        throw new ApiError(404, "Milestone not found");
+      }
+      let correctCount = 0;
+      const results = questions.map((q, index) => {
+        const selected = answers[index];
+        const isCorrect = selected === q.correctIndex;
+        if (isCorrect) correctCount++;
+        return {
+          questionText: q.questionText,
+          selectedOption: q.options[selected] || "Unanswered",
+          correctOption: q.options[q.correctIndex],
+          isCorrect,
+          explanation: q.explanation
+        };
+      });
+      const score = correctCount / questions.length * 100;
+      const passed = score >= 70;
+      const attempt = await db_default.quizAttempt.create({
+        data: {
+          userId,
+          milestoneId,
+          score,
+          passed,
+          answers: JSON.stringify(answers),
+          results: JSON.stringify(results)
+        }
+      });
+      if (passed) {
+        await db_default.roadmapMilestone.update({
+          where: { id: milestoneId },
+          data: {
+            status: "COMPLETED",
+            progress: 100,
+            completedAt: /* @__PURE__ */ new Date()
+          }
+        });
+        const nextMilestone = await db_default.roadmapMilestone.findFirst({
+          where: {
+            roadmapId: milestone.roadmapId,
+            order: milestone.order + 1
+          }
+        });
+        if (nextMilestone && (nextMilestone.status === "LOCKED" || nextMilestone.status === "UPCOMING")) {
+          await db_default.roadmapMilestone.update({
+            where: { id: nextMilestone.id },
+            data: { status: "IN_PROGRESS" }
+          });
+        }
+        const allMilestones = await db_default.roadmapMilestone.findMany({
+          where: { roadmapId: milestone.roadmapId }
+        });
+        const completedCount = allMilestones.filter((m) => m.status === "COMPLETED").length;
+        const overallProgress = completedCount / allMilestones.length * 100;
+        await db_default.roadmap.update({
+          where: { id: milestone.roadmapId },
+          data: { overallProgress }
+        });
+      }
+      return res.json(ApiResponse.success({
+        attemptId: attempt.id,
+        score,
+        passed,
+        results
+      }));
+    });
+  }
+});
+
+// src/routes/quiz.routes.ts
+var import_express12, router12, quiz_routes_default;
+var init_quiz_routes = __esm({
+  "src/routes/quiz.routes.ts"() {
+    import_express12 = require("express");
+    init_quiz_controller();
+    init_auth_middleware();
+    router12 = (0, import_express12.Router)();
+    router12.use(authenticate);
+    router12.get("/:milestoneId", getMilestoneQuiz);
+    router12.post("/:milestoneId/submit", submitQuizAnswers);
+    quiz_routes_default = router12;
+  }
+});
+
+// src/controllers/collab.controller.ts
+var createRoom, listRooms, getRoomMessages, getRoomMembers;
+var init_collab_controller = __esm({
+  "src/controllers/collab.controller.ts"() {
+    init_db();
+    init_asyncHandler();
+    init_apiResponse();
+    createRoom = asyncHandler(async (req, res) => {
+      const { name, description, topic, isPublic } = req.body;
+      const userId = req.user.id;
+      if (!name || name.trim() === "") {
+        throw new ApiError(400, "Room name is required");
+      }
+      const room = await db_default.collabRoom.create({
+        data: {
+          name,
+          description,
+          topic,
+          isPublic: isPublic !== void 0 ? isPublic : true,
+          createdBy: userId,
+          members: {
+            create: {
+              userId,
+              role: "admin",
+              isOnline: true,
+              lastSeenAt: /* @__PURE__ */ new Date()
+            }
+          }
+        },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: { id: true, firstName: true, lastName: true, avatar: true }
+              }
+            }
+          }
+        }
+      });
+      return res.status(201).json(ApiResponse.success(room, "Collaborative chat room created successfully"));
+    });
+    listRooms = asyncHandler(async (req, res) => {
+      const userId = req.user.id;
+      const rooms = await db_default.collabRoom.findMany({
+        where: {
+          OR: [
+            { isPublic: true },
+            {
+              members: {
+                some: { userId }
+              }
+            }
+          ]
+        },
+        include: {
+          members: {
+            select: { userId: true }
+          },
+          _count: {
+            select: { messages: true }
+          }
+        },
+        orderBy: { createdAt: "desc" }
+      });
+      return res.json(ApiResponse.success(rooms));
+    });
+    getRoomMessages = asyncHandler(async (req, res) => {
+      const { roomId } = req.params;
+      const userId = req.user.id;
+      const room = await db_default.collabRoom.findUnique({
+        where: { id: roomId },
+        include: { members: true }
+      });
+      if (!room) {
+        throw new ApiError(404, "Room not found");
+      }
+      if (!room.isPublic && !room.members.some((m) => m.userId === userId)) {
+        throw new ApiError(403, "Access denied to this private room");
+      }
+      const messages = await db_default.roomMessage.findMany({
+        where: { roomId },
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, avatar: true }
+          }
+        },
+        orderBy: { createdAt: "asc" }
+      });
+      return res.json(ApiResponse.success(messages));
+    });
+    getRoomMembers = asyncHandler(async (req, res) => {
+      const { roomId } = req.params;
+      const userId = req.user.id;
+      const room = await db_default.collabRoom.findUnique({
+        where: { id: roomId },
+        include: { members: true }
+      });
+      if (!room) {
+        throw new ApiError(404, "Room not found");
+      }
+      if (!room.isPublic && !room.members.some((m) => m.userId === userId)) {
+        throw new ApiError(403, "Access denied to this private room");
+      }
+      const members = await db_default.roomMember.findMany({
+        where: { roomId },
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, avatar: true }
+          }
+        }
+      });
+      return res.json(ApiResponse.success(members));
+    });
+  }
+});
+
+// src/routes/collab.routes.ts
+var import_express13, router13, collab_routes_default;
+var init_collab_routes = __esm({
+  "src/routes/collab.routes.ts"() {
+    import_express13 = require("express");
+    init_collab_controller();
+    init_auth_middleware();
+    router13 = (0, import_express13.Router)();
+    router13.use(authenticate);
+    router13.post("/rooms", createRoom);
+    router13.get("/rooms", listRooms);
+    router13.get("/rooms/:roomId/messages", getRoomMessages);
+    router13.get("/rooms/:roomId/members", getRoomMembers);
+    collab_routes_default = router13;
+  }
+});
+
+// src/controllers/knowledge.controller.ts
+var pdfParse, uploadDocument, listDocuments, queryDocument, deleteDocument, getDocument, createArticle, updateArticle;
+var init_knowledge_controller = __esm({
+  "src/controllers/knowledge.controller.ts"() {
+    init_db();
+    init_asyncHandler();
+    init_apiResponse();
+    init_ai_router_service();
+    pdfParse = __toESM(require("pdf-parse"), 1);
+    uploadDocument = asyncHandler(async (req, res) => {
+      const file = req.file;
+      const userId = req.user.id;
+      if (!file) {
+        throw new ApiError(400, "No file uploaded");
+      }
+      let text = "";
+      const fileType = file.mimetype;
+      const originalName = file.originalname;
+      if (fileType === "application/pdf") {
+        try {
+          const parseFn = pdfParse.default || pdfParse;
+          const data = await parseFn(file.buffer);
+          text = data.text || "";
+        } catch (err) {
+          throw new ApiError(400, `Failed to parse PDF document: ${err.message}`);
+        }
+      } else if (fileType.startsWith("text/") || originalName.endsWith(".txt") || originalName.endsWith(".md") || originalName.endsWith(".json") || originalName.endsWith(".js") || originalName.endsWith(".ts")) {
+        text = file.buffer.toString("utf-8");
+      } else {
+        throw new ApiError(400, "Unsupported file format. Please upload PDF, TXT, MD, JSON, JS, or TS files.");
+      }
+      if (!text || text.trim() === "") {
+        throw new ApiError(400, "Document contains no readable text");
+      }
+      const chunkSize = 1e3;
+      const overlap = 200;
+      const chunks = [];
+      let index = 0;
+      while (index < text.length) {
+        const chunk = text.substring(index, index + chunkSize).trim();
+        if (chunk) {
+          chunks.push(chunk);
+        }
+        index += chunkSize - overlap;
+      }
+      const doc = await db_default.knowledgeDoc.create({
+        data: {
+          userId,
+          title: originalName,
+          fileUrl: "",
+          // Locally parsed, url is empty
+          fileType,
+          totalChunks: chunks.length,
+          extractedText: text,
+          chunks: {
+            create: chunks.map((content, chunkIndex) => ({
+              content,
+              chunkIndex
+            }))
+          }
+        }
+      });
+      return res.status(201).json(ApiResponse.success(doc, "Document uploaded and indexed successfully"));
+    });
+    listDocuments = asyncHandler(async (req, res) => {
+      const userId = req.user.id;
+      const docs = await db_default.knowledgeDoc.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          title: true,
+          fileType: true,
+          totalChunks: true,
+          createdAt: true
+        },
+        orderBy: { createdAt: "desc" }
+      });
+      return res.json(ApiResponse.success(docs));
+    });
+    queryDocument = asyncHandler(async (req, res) => {
+      const { docId } = req.params;
+      const { query } = req.body;
+      const userId = req.user.id;
+      if (!query || query.trim() === "") {
+        throw new ApiError(400, "Query is required");
+      }
+      const doc = await db_default.knowledgeDoc.findFirst({
+        where: { id: docId, userId },
+        include: { chunks: true }
+      });
+      if (!doc) {
+        throw new ApiError(404, "Document not found");
+      }
+      const queryWords = query.toLowerCase().split(/\W+/).filter((w) => w.length > 2);
+      const scoredChunks = doc.chunks.map((chunk) => {
+        let score = 0;
+        const contentLower = chunk.content.toLowerCase();
+        queryWords.forEach((word) => {
+          if (contentLower.includes(word)) {
+            score += 1;
+            const occurrences = contentLower.split(word).length - 1;
+            score += occurrences * 0.2;
+          }
+        });
+        return { chunk, score };
+      });
+      const topChunks = scoredChunks.filter((sc) => sc.score > 0).sort((a, b) => b.score - a.score).slice(0, 4).map((sc) => sc.chunk.content);
+      const contextChunks = topChunks.length > 0 ? topChunks : doc.chunks.slice(0, 2).map((c) => c.content);
+      const contextText = contextChunks.join("\n\n---\n\n");
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      let answer = "AI service is unavailable";
+      if (rawKey) {
+        const prompt = `Use the following document segments extracted from "${doc.title}" to answer the student's question.
+If the answer cannot be found in the document, answer using your general knowledge but clearly state that the document did not explicitly cover this point.
+
+--- DOCUMENT EXTRACTS START ---
+${contextText}
+--- DOCUMENT EXTRACTS END ---
+
+User's Question: "${query}"`;
+        const aiResult = await callAI({
+          provider: selectedProvider,
+          rawKey,
+          messages: [{ role: "user", content: prompt }],
+          mode: "FREE_CHAT"
+        });
+        answer = aiResult.content;
+      } else {
+        answer = "AI API key not configured. Matching text segments from the document:\n\n" + contextText;
+      }
+      return res.json(ApiResponse.success({
+        query,
+        answer,
+        sources: contextChunks
+      }));
+    });
+    deleteDocument = asyncHandler(async (req, res) => {
+      const { docId } = req.params;
+      const userId = req.user.id;
+      const doc = await db_default.knowledgeDoc.findFirst({
+        where: { id: docId, userId }
+      });
+      if (!doc) {
+        throw new ApiError(404, "Document not found");
+      }
+      await db_default.knowledgeDoc.delete({
+        where: { id: docId }
+      });
+      return res.json(ApiResponse.success(null, "Document deleted successfully"));
+    });
+    getDocument = asyncHandler(async (req, res) => {
+      const { docId } = req.params;
+      const userId = req.user.id;
+      const doc = await db_default.knowledgeDoc.findFirst({
+        where: { id: docId, userId }
+      });
+      if (!doc) {
+        throw new ApiError(404, "Document not found");
+      }
+      return res.json(ApiResponse.success(doc));
+    });
+    createArticle = asyncHandler(async (req, res) => {
+      const { title, content } = req.body;
+      const userId = req.user.id;
+      if (!title || !content) {
+        throw new ApiError(400, "Title and content are required");
+      }
+      const chunkSize = 1e3;
+      const overlap = 200;
+      const chunks = [];
+      let index = 0;
+      while (index < content.length) {
+        const chunk = content.substring(index, index + chunkSize).trim();
+        if (chunk) {
+          chunks.push(chunk);
+        }
+        index += chunkSize - overlap;
+      }
+      const doc = await db_default.knowledgeDoc.create({
+        data: {
+          userId,
+          title,
+          fileUrl: "",
+          fileType: "text/markdown",
+          totalChunks: chunks.length,
+          extractedText: content,
+          chunks: {
+            create: chunks.map((c, chunkIndex) => ({
+              content: c,
+              chunkIndex
+            }))
+          }
+        }
+      });
+      return res.status(201).json(ApiResponse.success(doc, "Article created successfully"));
+    });
+    updateArticle = asyncHandler(async (req, res) => {
+      const { docId } = req.params;
+      const { title, content } = req.body;
+      const userId = req.user.id;
+      if (!title || !content) {
+        throw new ApiError(400, "Title and content are required");
+      }
+      const doc = await db_default.knowledgeDoc.findFirst({
+        where: { id: docId, userId }
+      });
+      if (!doc) {
+        throw new ApiError(404, "Article not found");
+      }
+      const chunkSize = 1e3;
+      const overlap = 200;
+      const chunks = [];
+      let index = 0;
+      while (index < content.length) {
+        const chunk = content.substring(index, index + chunkSize).trim();
+        if (chunk) {
+          chunks.push(chunk);
+        }
+        index += chunkSize - overlap;
+      }
+      const updatedDoc = await db_default.$transaction(async (tx) => {
+        await tx.docChunk.deleteMany({
+          where: { docId }
+        });
+        return tx.knowledgeDoc.update({
+          where: { id: docId },
+          data: {
+            title,
+            totalChunks: chunks.length,
+            extractedText: content,
+            chunks: {
+              create: chunks.map((c, chunkIndex) => ({
+                content: c,
+                chunkIndex
+              }))
+            }
+          }
+        });
+      });
+      return res.json(ApiResponse.success(updatedDoc, "Article updated successfully"));
+    });
+  }
+});
+
+// src/routes/knowledge.routes.ts
+var import_express14, import_multer2, router14, storage2, fileFilter2, uploadDoc, knowledge_routes_default;
+var init_knowledge_routes = __esm({
+  "src/routes/knowledge.routes.ts"() {
+    import_express14 = require("express");
+    import_multer2 = __toESM(require("multer"), 1);
+    init_knowledge_controller();
+    init_auth_middleware();
+    init_apiResponse();
+    router14 = (0, import_express14.Router)();
+    storage2 = import_multer2.default.memoryStorage();
+    fileFilter2 = (_req, file, cb) => {
+      const allowedExtensions = /\.(pdf|txt|md|json|js|ts)$/i;
+      const isAllowedExt = allowedExtensions.test(file.originalname);
+      if (isAllowedExt) {
+        cb(null, true);
+      } else {
+        cb(new ApiError(400, "Unsupported file format. Please upload PDF, TXT, MD, JSON, JS, or TS files."));
+      }
+    };
+    uploadDoc = (0, import_multer2.default)({
+      storage: storage2,
+      fileFilter: fileFilter2,
+      limits: { fileSize: 10 * 1024 * 1024 }
+      // 10MB limit for documents
+    });
+    router14.use(authenticate);
+    router14.post("/upload", uploadDoc.single("doc"), uploadDocument);
+    router14.get("/list", listDocuments);
+    router14.post("/article", createArticle);
+    router14.put("/article/:docId", updateArticle);
+    router14.get("/:docId", getDocument);
+    router14.post("/:docId/query", queryDocument);
+    router14.delete("/:docId", deleteDocument);
+    knowledge_routes_default = router14;
+  }
+});
+
+// src/controllers/profile.controller.ts
+var getPublicProfile, getProfileSettings, updateProfileSettings;
+var init_profile_controller = __esm({
+  "src/controllers/profile.controller.ts"() {
+    init_db();
+    init_asyncHandler();
+    init_apiResponse();
+    getPublicProfile = asyncHandler(async (req, res) => {
+      const { slug } = req.params;
+      if (!slug || slug.trim() === "") {
+        throw new ApiError(400, "Profile slug is required");
+      }
+      const user = await db_default.user.findFirst({
+        where: { profileSlug: slug, isProfilePublic: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          avatar: true,
+          bio: true,
+          location: true,
+          title: true,
+          portfolioLinks: true,
+          createdAt: true,
+          // Include statistics
+          totalChats: true,
+          projectsBuilt: true,
+          hoursStudied: true,
+          dayStreak: true,
+          // Relations
+          roadmaps: {
+            where: { isActive: true },
+            include: {
+              milestones: {
+                orderBy: { order: "asc" }
+              }
+            }
+          },
+          projects: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              status: true,
+              coverImage: true,
+              progress: true,
+              techStack: true
+            }
+          },
+          milestones: {
+            orderBy: { earnedAt: "desc" }
+          }
+        }
+      });
+      if (!user) {
+        throw new ApiError(404, "Public profile not found or profile is set to private");
+      }
+      return res.json(ApiResponse.success(user));
+    });
+    getProfileSettings = asyncHandler(async (req, res) => {
+      const userId = req.user.id;
+      const user = await db_default.user.findUnique({
+        where: { id: userId },
+        select: {
+          profileSlug: true,
+          isProfilePublic: true,
+          portfolioLinks: true
+        }
+      });
+      return res.json(ApiResponse.success(user));
+    });
+    updateProfileSettings = asyncHandler(async (req, res) => {
+      const { profileSlug, isProfilePublic, portfolioLinks } = req.body;
+      const userId = req.user.id;
+      if (profileSlug && profileSlug.trim() !== "") {
+        const slugLower = profileSlug.trim().toLowerCase();
+        if (!/^[a-z0-9-_]+$/.test(slugLower)) {
+          throw new ApiError(400, "Profile slug can only contain letters, numbers, dashes, and underscores");
+        }
+        const existing = await db_default.user.findFirst({
+          where: {
+            profileSlug: slugLower,
+            NOT: { id: userId }
+          }
+        });
+        if (existing) {
+          throw new ApiError(400, "This profile slug is already taken. Please choose another one.");
+        }
+      }
+      const updatedUser = await db_default.user.update({
+        where: { id: userId },
+        data: {
+          ...profileSlug !== void 0 && { profileSlug: profileSlug.trim().toLowerCase() },
+          ...isProfilePublic !== void 0 && { isProfilePublic },
+          ...portfolioLinks !== void 0 && { portfolioLinks }
+        },
+        select: {
+          profileSlug: true,
+          isProfilePublic: true,
+          portfolioLinks: true
+        }
+      });
+      return res.json(ApiResponse.success(updatedUser, "Profile sharing settings updated successfully"));
+    });
+  }
+});
+
+// src/routes/profile.routes.ts
+var import_express15, router15, profile_routes_default;
+var init_profile_routes = __esm({
+  "src/routes/profile.routes.ts"() {
+    import_express15 = require("express");
+    init_profile_controller();
+    init_auth_middleware();
+    router15 = (0, import_express15.Router)();
+    router15.get("/public/:slug", getPublicProfile);
+    router15.get("/settings", authenticate, getProfileSettings);
+    router15.put("/settings", authenticate, updateProfileSettings);
+    profile_routes_default = router15;
+  }
+});
+
+// src/controllers/projectBuilder.controller.ts
+var generateProjectSteps, submitProjectStep, validateProjectStep;
+var init_projectBuilder_controller = __esm({
+  "src/controllers/projectBuilder.controller.ts"() {
+    init_db();
+    init_asyncHandler();
+    init_apiResponse();
+    init_ai_router_service();
+    generateProjectSteps = asyncHandler(async (req, res) => {
+      const { projectId } = req.params;
+      const userId = req.user.id;
+      const project = await db_default.project.findFirst({
+        where: { id: projectId, userId },
+        include: { steps: true }
+      });
+      if (!project) {
+        throw new ApiError(404, "Project not found");
+      }
+      if (project.steps.length > 0) {
+        return res.json(ApiResponse.success(project.steps));
+      }
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      let generatedSteps = [];
+      if (rawKey) {
+        try {
+          const prompt = `Break down this project into a 4-6 step detailed step-by-step implementation plan:
+Project Name: "${project.name}"
+Description: "${project.description || ""}"
+Tech Stack: ${project.techStack.join(", ")}
+
+Output exactly a JSON array of objects. Do not include markdown code block syntax.
+Each object must have the following keys:
+- title: string
+- description: string (detailed instructions on what to implement in this step)
+- deliverable: string (what file or content the user must submit to pass, e.g. "database.ts containing Prisma schema config")
+- expectedFileTypes: array of strings (e.g. ["ts", "js", "json", "prisma"])
+- validationCriteria: array of strings (what the AI reviewer will check, e.g. ["Schema contains user model", "Includes indexes"])
+- estimatedHours: number (estimated effort)
+
+Example:
+[
+  {
+    "title": "Database Schema Design",
+    "description": "Create the Prisma schema file including User and Profile models.",
+    "deliverable": "schema.prisma",
+    "expectedFileTypes": ["prisma"],
+    "validationCriteria": ["Contains User model", "Relations are properly set"],
+    "estimatedHours": 3
+  }
+]`;
+          const aiResult = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{ role: "user", content: prompt }],
+            mode: "FREE_CHAT"
+          });
+          const cleanJson = aiResult.content.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(cleanJson);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            generatedSteps = parsed;
+          }
+        } catch (err) {
+          console.error("Failed to generate project steps via AI:", err.message);
+        }
+      }
+      if (generatedSteps.length === 0) {
+        generatedSteps = [
+          {
+            title: "Project Initialization & Structure Setup",
+            description: "Initialize the codebase directory structure, package configuration, and repository layout.",
+            deliverable: "package.json config showing basic setup details",
+            expectedFileTypes: ["json", "txt"],
+            validationCriteria: ["Includes name and main entrypoint", "Basic scripts are defined"],
+            estimatedHours: 2
+          },
+          {
+            title: "Backend Database and Schema Configuration",
+            description: "Design and set up database models, migrations, and connections.",
+            deliverable: "Database configuration or schema file",
+            expectedFileTypes: ["prisma", "sql", "js", "ts"],
+            validationCriteria: ["Correct relationships modeled", "Indexes configured for core queries"],
+            estimatedHours: 4
+          },
+          {
+            title: "API Implementation & Route Handlers",
+            description: "Write Express routes and controller functions for CRUD operations.",
+            deliverable: "Router code file or controllers directory snapshot",
+            expectedFileTypes: ["ts", "js"],
+            validationCriteria: ["Authentication middleware used", "Validation schema is present"],
+            estimatedHours: 6
+          },
+          {
+            title: "Frontend Component Assembly & UI Integration",
+            description: "Build React pages, layout structures, and wire up states to mock APIs.",
+            deliverable: "App.tsx or Page component code",
+            expectedFileTypes: ["tsx", "jsx", "css"],
+            validationCriteria: ["Component handles loading states", "Includes clean styling"],
+            estimatedHours: 8
+          }
+        ];
+      }
+      const createdSteps = await Promise.all(
+        generatedSteps.map(
+          (step, index) => db_default.projectStep.create({
+            data: {
+              projectId: project.id,
+              order: index + 1,
+              title: step.title,
+              description: step.description,
+              deliverable: step.deliverable,
+              expectedFileTypes: step.expectedFileTypes || [],
+              validationCriteria: step.validationCriteria || [],
+              estimatedHours: step.estimatedHours || 4,
+              status: index === 0 ? "IN_PROGRESS" : "PENDING"
+            }
+          })
+        )
+      );
+      return res.status(201).json(ApiResponse.success(createdSteps));
+    });
+    submitProjectStep = asyncHandler(async (req, res) => {
+      const { stepId } = req.params;
+      const { submissionText, submissionFileName } = req.body;
+      const userId = req.user.id;
+      const step = await db_default.projectStep.findUnique({
+        where: { id: stepId },
+        include: { project: true }
+      });
+      if (!step || step.project.userId !== userId) {
+        throw new ApiError(404, "Project step not found");
+      }
+      const updatedStep = await db_default.projectStep.update({
+        where: { id: stepId },
+        data: {
+          status: "PENDING_VALIDATION",
+          submittedFileUrl: submissionText,
+          // We store the code/content in this field
+          submittedFileName: submissionFileName || "submission.txt",
+          submittedAt: /* @__PURE__ */ new Date()
+        }
+      });
+      return res.json(ApiResponse.success(updatedStep, "Step deliverable submitted successfully. AI review is running."));
+    });
+    validateProjectStep = asyncHandler(async (req, res) => {
+      const { stepId } = req.params;
+      const userId = req.user.id;
+      const step = await db_default.projectStep.findUnique({
+        where: { id: stepId },
+        include: { project: true }
+      });
+      if (!step || step.project.userId !== userId) {
+        throw new ApiError(404, "Project step not found");
+      }
+      if (step.status !== "PENDING_VALIDATION" || !step.submittedFileUrl) {
+        throw new ApiError(400, "Step is not ready for validation");
+      }
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      let score = 80;
+      let feedback = "Excellent implementation. The code layout satisfies the requirements.";
+      let suggestions = ["Refactor helper operations", "Write unit tests"];
+      let passed = true;
+      if (rawKey) {
+        try {
+          const prompt = `Review this student's project deliverable:
+Project: "${step.project.name}"
+Step: "${step.title}"
+Instructions: "${step.description}"
+Validation Criteria: ${step.validationCriteria.join(", ")}
+
+Student Submission Contents:
+"""
+${step.submittedFileUrl}
+"""
+
+Output exactly a JSON object. Do not include markdown code block syntax.
+The object must contain these keys:
+- score: number (from 0 to 100)
+- passed: boolean (true if score is >= 70, false otherwise)
+- feedback: string (detailed review comments)
+- suggestions: array of strings (actionable refactoring advice)
+
+Example:
+{
+  "score": 85,
+  "passed": true,
+  "feedback": "The file is structured correctly and contains all core fields.",
+  "suggestions": ["Add documentation", "Separate DB config"]
+}`;
+          const aiResult = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{ role: "user", content: prompt }],
+            mode: "FREE_CHAT"
+          });
+          const cleanJson = aiResult.content.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(cleanJson);
+          if (parsed && typeof parsed === "object") {
+            score = parsed.score !== void 0 ? parsed.score : 80;
+            passed = parsed.passed !== void 0 ? parsed.passed : score >= 70;
+            feedback = parsed.feedback || feedback;
+            suggestions = parsed.suggestions || suggestions;
+          }
+        } catch (err) {
+          console.error("Failed to validate project step via AI:", err.message);
+        }
+      }
+      const nextStatus = passed ? "COMPLETED" : "IN_PROGRESS";
+      const updatedStep = await db_default.projectStep.update({
+        where: { id: stepId },
+        data: {
+          status: nextStatus,
+          aiFeedback: feedback,
+          aiScore: score,
+          aiSuggestions: suggestions,
+          validatedAt: /* @__PURE__ */ new Date()
+        }
+      });
+      if (passed) {
+        const nextStep = await db_default.projectStep.findFirst({
+          where: {
+            projectId: step.projectId,
+            order: step.order + 1
+          }
+        });
+        if (nextStep) {
+          await db_default.projectStep.update({
+            where: { id: nextStep.id },
+            data: { status: "IN_PROGRESS" }
+          });
+        }
+      }
+      const allSteps = await db_default.projectStep.findMany({
+        where: { projectId: step.projectId }
+      });
+      const completedCount = allSteps.filter((s) => s.status === "COMPLETED").length;
+      const progress = completedCount / allSteps.length * 100;
+      const progressLabel = `Step ${completedCount} of ${allSteps.length} complete`;
+      await db_default.project.update({
+        where: { id: step.projectId },
+        data: {
+          progress,
+          progressLabel,
+          status: progress === 100 ? "COMPLETED" : "IN_PROGRESS"
+        }
+      });
+      return res.json(ApiResponse.success({
+        step: updatedStep,
+        passed,
+        score,
+        feedback,
+        suggestions,
+        projectProgress: progress
+      }));
+    });
+  }
+});
+
+// src/routes/projectBuilder.routes.ts
+var import_express16, router16, projectBuilder_routes_default;
+var init_projectBuilder_routes = __esm({
+  "src/routes/projectBuilder.routes.ts"() {
+    import_express16 = require("express");
+    init_projectBuilder_controller();
+    init_auth_middleware();
+    router16 = (0, import_express16.Router)();
+    router16.use(authenticate);
+    router16.post("/:projectId/steps/generate", generateProjectSteps);
+    router16.post("/steps/:stepId/submit", submitProjectStep);
+    router16.post("/steps/:stepId/validate", validateProjectStep);
+    projectBuilder_routes_default = router16;
   }
 });
 
@@ -3114,14 +4356,14 @@ var init_chat = __esm({
 });
 
 // src/config/passport.ts
-import passport2 from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-var passport_default;
+var import_passport2, import_passport_google_oauth20, passport_default;
 var init_passport = __esm({
   "src/config/passport.ts"() {
+    import_passport2 = __toESM(require("passport"), 1);
+    import_passport_google_oauth20 = require("passport-google-oauth20");
     init_db();
-    passport2.use(
-      new GoogleStrategy(
+    import_passport2.default.use(
+      new import_passport_google_oauth20.Strategy(
         {
           clientID: process.env.GOOGLE_CLIENT_ID || "dummy-client-id",
           clientSecret: process.env.GOOGLE_CLIENT_SECRET || "dummy-client-secret",
@@ -3177,18 +4419,18 @@ var init_passport = __esm({
         }
       )
     );
-    passport_default = passport2;
+    passport_default = import_passport2.default;
   }
 });
 
 // src/app.ts
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import morgan from "morgan";
-var app, app_default;
+var import_express17, import_cors, import_helmet, import_morgan, app, app_default;
 var init_app = __esm({
   "src/app.ts"() {
+    import_express17 = __toESM(require("express"), 1);
+    import_cors = __toESM(require("cors"), 1);
+    import_helmet = __toESM(require("helmet"), 1);
+    import_morgan = __toESM(require("morgan"), 1);
     init_rateLimit_middleware();
     init_error_middleware();
     init_auth_routes();
@@ -3202,21 +4444,26 @@ var init_app = __esm({
     init_progress_routes();
     init_folder_routes();
     init_settings_routes();
+    init_quiz_routes();
+    init_collab_routes();
+    init_knowledge_routes();
+    init_profile_routes();
+    init_projectBuilder_routes();
     init_chat();
     init_db();
     init_passport();
-    app = express();
+    app = (0, import_express17.default)();
     app.use(passport_default.initialize());
-    app.use(helmet({
+    app.use((0, import_helmet.default)({
       crossOriginResourcePolicy: { policy: "cross-origin" }
     }));
-    app.use(cors({
+    app.use((0, import_cors.default)({
       origin: process.env.CLIENT_URL || "http://localhost:8080",
       credentials: true
     }));
-    app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
-    app.use(express.json({ limit: "10mb" }));
-    app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+    app.use((0, import_morgan.default)(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+    app.use(import_express17.default.json({ limit: "10mb" }));
+    app.use(import_express17.default.urlencoded({ extended: true, limit: "10mb" }));
     app.use("/api/", apiLimiter);
     app.get("/api/health", async (req, res) => {
       let dbStatus = "UNKNOWN";
@@ -3249,6 +4496,11 @@ var init_app = __esm({
     app.use("/api/progress", progress_routes_default);
     app.use("/api/folders", folder_routes_default);
     app.use("/api/settings", settings_routes_default);
+    app.use("/api/quiz", quiz_routes_default);
+    app.use("/api/collab", collab_routes_default);
+    app.use("/api/knowledge", knowledge_routes_default);
+    app.use("/api/profile", profile_routes_default);
+    app.use("/api/project-builder", projectBuilder_routes_default);
     app.use(notFound);
     app.use(errorHandler);
     app_default = app;
@@ -3260,20 +4512,28 @@ var server_exports = {};
 __export(server_exports, {
   createServer: () => createServer
 });
-import "dotenv/config";
 function createServer() {
   connectRedis();
   return app_default;
 }
+var import_config;
 var init_server = __esm({
   "server/index.ts"() {
+    init_polyfill();
+    import_config = require("dotenv/config");
     init_app();
     init_redis();
   }
 });
 
 // api/index_src.ts
-import "dotenv/config";
+var index_src_exports = {};
+__export(index_src_exports, {
+  default: () => handler
+});
+module.exports = __toCommonJS(index_src_exports);
+init_polyfill();
+var import_config2 = require("dotenv/config");
 var app2 = null;
 var initError = null;
 async function getApp() {
@@ -3301,6 +4561,3 @@ async function handler(req, res) {
     });
   }
 }
-export {
-  handler as default
-};

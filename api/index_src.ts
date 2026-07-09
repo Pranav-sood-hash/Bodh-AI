@@ -1,3 +1,4 @@
+import "../src/polyfill";
 import "dotenv/config";
 
 let app: any = null;

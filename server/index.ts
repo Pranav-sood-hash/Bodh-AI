@@ -1,3 +1,4 @@
+import "../src/polyfill";
 import "dotenv/config";
 import app from "../src/app";
 import { connectRedis } from "../src/config/redis";
