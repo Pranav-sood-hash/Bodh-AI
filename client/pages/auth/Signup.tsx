@@ -190,7 +190,8 @@ export default function Signup() {
       navigate('/verify-email', { state: { email } });
     } catch (err: any) {
       setLoading(false);
-      setGlobalError(err.response?.data?.message || 'Email already registered');
+      const rawMsg = err.response?.data?.message || err.response?.data?.error || err.message || '';
+      setGlobalError(typeof rawMsg === 'string' ? rawMsg : 'Email already registered');
     }
   };
 

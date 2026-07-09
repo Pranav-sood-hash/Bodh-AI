@@ -84,7 +84,8 @@ export default function ResetPassword() {
       }, 2000);
     } catch (err: any) {
       setLoading(false);
-      setGlobalError(err.response?.data?.message || 'Invalid or expired reset code');
+      const rawMsg = err.response?.data?.message || err.response?.data?.error || err.message || '';
+      setGlobalError(typeof rawMsg === 'string' ? rawMsg : 'Invalid or expired reset code');
     }
   };
 

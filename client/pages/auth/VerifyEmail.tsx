@@ -29,7 +29,8 @@ export default function VerifyEmail() {
       setLoading(false);
     } catch (err: any) {
       setLoading(false);
-      setError(err.response?.data?.message || err.response?.data?.error || 'Verification failed');
+      const rawMsg = err.response?.data?.message || err.response?.data?.error || err.message || '';
+      setError(typeof rawMsg === 'string' ? rawMsg : 'Verification failed');
     }
   };
 

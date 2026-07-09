@@ -55,7 +55,8 @@ export default function ForgotPassword() {
       navigate('/reset-password', { state: { email } });
     } catch (err: any) {
       setLoading(false);
-      setGlobalError(err.response?.data?.message || 'Failed to request reset code');
+      const rawMsg = err.response?.data?.message || err.response?.data?.error || err.message || '';
+      setGlobalError(typeof rawMsg === 'string' ? rawMsg : 'Failed to request reset code');
     }
   };
 

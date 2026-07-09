@@ -88,10 +88,11 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err: any) {
       setLoading(false);
-      const errMsg = err.response?.data?.message || err.message || '';
-      if (errMsg.includes('verify')) {
+      const rawMsg = err.response?.data?.message || err.response?.data?.error || err.message || '';
+      const errMsg = typeof rawMsg === 'string' ? rawMsg : '';
+      if (errMsg.toLowerCase().includes('verify')) {
         setFormError('not_verified');
-      } else if (errMsg.includes('password') || errMsg.includes('Invalid')) {
+      } else if (errMsg.toLowerCase().includes('password') || errMsg.toLowerCase().includes('invalid')) {
         setFormError('wrong_password');
       } else if (err.response?.status === 404) {
         setFormError('not_registered');

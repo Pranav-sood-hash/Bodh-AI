@@ -2,6 +2,25 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/axios';
 
+const getErrorMessage = (err: any): string => {
+  if (!err) return '';
+  const data = err.response?.data;
+  if (data) {
+    if (typeof data.error === 'string') return data.error;
+    if (typeof data.message === 'string') return data.message;
+    if (Array.isArray(data.error)) return data.error.join(', ');
+    if (Array.isArray(data.message)) return data.message.join(', ');
+    if (data.error && typeof data.error === 'object' && typeof data.error.message === 'string') {
+      return data.error.message;
+    }
+    if (data.message && typeof data.message === 'object' && typeof data.message.message === 'string') {
+      return data.message.message;
+    }
+  }
+  if (typeof err.message === 'string') return err.message;
+  return 'An error occurred. Please try again.';
+};
+
 export const useAuth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -16,7 +35,7 @@ export const useAuth = () => {
         state: { email: data.email, type: 'EMAIL_VERIFICATION' }
       });
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setLoading(false);
@@ -33,7 +52,7 @@ export const useAuth = () => {
       
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid code. Please try again.');
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setLoading(false);
@@ -49,8 +68,8 @@ export const useAuth = () => {
       localStorage.setItem('refreshToken', res.data.refreshToken);
       navigate('/dashboard');
     } catch (err: any) {
-      const msg = err.response?.data?.error;
-      if (msg?.includes('verify your email')) {
+      const msg = getErrorMessage(err);
+      if (msg.toLowerCase().includes('verify your email') || msg.toLowerCase().includes('verify first')) {
         navigate('/verify-email', {
           state: { email: data.email, type: 'EMAIL_VERIFICATION' }
         });
@@ -72,7 +91,7 @@ export const useAuth = () => {
         state: { email, type: 'PASSWORD_RESET' }
       });
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Request failed. Please try again.');
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setLoading(false);
@@ -88,7 +107,7 @@ export const useAuth = () => {
         state: { email, resetToken: data.data.resetToken }
       });
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid code. Please try again.');
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setLoading(false);
@@ -104,7 +123,7 @@ export const useAuth = () => {
         state: { success: 'Password updated. Please sign in.' }
       });
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Reset failed. Please try again.');
+      setError(getErrorMessage(err));
       throw err;
     } finally {
       setLoading(false);
@@ -115,8 +134,8 @@ export const useAuth = () => {
     try {
       await api.post('/auth/resend-otp', { email, type });
     } catch (err: any) {
-      const msg = err.response?.data?.error || '';
-      if (msg.includes('Please wait')) {
+      const msg = getErrorMessage(err);
+      if (msg.toLowerCase().includes('please wait')) {
         throw new Error(msg);
       }
     }
