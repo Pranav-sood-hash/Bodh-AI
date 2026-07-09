@@ -6,14 +6,14 @@
     "NODE_ENV": "production"
   },
   "functions": {
-    "api/index.js": {
+    "api/index.cjs": {
       "maxDuration": 30
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api"
+      "destination": "/api/index.cjs"
     },
     {
       "source": "/(.*)",
