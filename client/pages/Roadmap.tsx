@@ -23,6 +23,8 @@ import { useChat } from '@/context/ChatContext';
 import { useRoadmap } from '@/hooks/useRoadmap';
 import { useProfile } from '@/hooks/useProfile';
 import CreateRoadmapModal from '@/components/modals/CreateRoadmapModal';
+import { useQueryClient } from '@tanstack/react-query';
+import MilestoneQuizModal from '@/components/modals/MilestoneQuizModal';
 
 interface RoadmapNode {
   id: string;
@@ -54,8 +56,25 @@ export default function Roadmap() {
   } = useRoadmap();
   
   const { profile } = useProfile();
+  const queryClient = useQueryClient();
   const [activeNodeId, setActiveNodeId] = useState<string>('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // Quiz Modal State
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [quizMilestoneId, setQuizMilestoneId] = useState('');
+  const [quizMilestoneTitle, setQuizMilestoneTitle] = useState('');
+
+  const handleOpenQuiz = (id: string, title: string) => {
+    setQuizMilestoneId(id);
+    setQuizMilestoneTitle(title);
+    setIsQuizOpen(true);
+  };
+
+  const handleQuizSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['activeRoadmap'] });
+  };
+
   const userName = profile ? `${profile.firstName} ${profile.lastName}` : '';
 
   useEffect(() => {
@@ -450,12 +469,21 @@ export default function Roadmap() {
                           </button>
                           
                           {node.status !== 'completed' && (
-                            <button
-                              onClick={() => handleMarkComplete(node.id)}
-                              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider smooth-transition"
-                            >
-                              Mark Completed
-                            </button>
+                            <div className="flex flex-col gap-2">
+                              <button
+                                onClick={() => handleOpenQuiz(node.id, node.title)}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 smooth-transition shadow-sm"
+                              >
+                                <Award className="w-3.5 h-3.5" />
+                                Take Milestone Quiz
+                              </button>
+                              <button
+                                onClick={() => handleMarkComplete(node.id)}
+                                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider smooth-transition"
+                              >
+                                Mark Completed (Skip Quiz)
+                              </button>
+                            </div>
                           )}
                         </>
                       ) : (
@@ -485,6 +513,15 @@ export default function Roadmap() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onGenerate={handleGenerate}
+      />
+
+      {/* Quiz Modal */}
+      <MilestoneQuizModal
+        milestoneId={quizMilestoneId}
+        milestoneTitle={quizMilestoneTitle}
+        isOpen={isQuizOpen}
+        onClose={() => setIsQuizOpen(false)}
+        onSuccess={handleQuizSuccess}
       />
 
     </div>

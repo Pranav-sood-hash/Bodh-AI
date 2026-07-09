@@ -4,6 +4,8 @@ import api from '@/lib/axios';
 import Sidebar from '@/components/Sidebar';
 import { useSettings } from '@/context/SettingsContext';
 import { useProfile as useProfileHook } from '@/hooks/useProfile';
+import { SUPPORTED_LANGUAGES } from '../i18n';
+import { useTranslation } from 'react-i18next';
 import { Switch } from '@/components/ui/switch';
 import {
   User, Shield, Bell, Mic, Globe, Check, Play, Clock, Search,
@@ -26,6 +28,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const { settings, setVoice, setSpeed, setLanguage, setAccent } = useSettings();
   const { profile: hookProfile } = useProfileHook();
+  const { i18n } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [profile, setProfile] = useState<any>(null);
@@ -45,7 +48,8 @@ export default function Settings() {
   const [selectedVoice, setSelectedVoice] = useState('Aria');
 
   // Language states
-  const [displayLanguage, setDisplayLanguage] = useState('Hindi');
+  const [displayLanguage, setDisplayLanguage] = useState('en');
+  const [searchQuery, setSearchQuery] = useState('');
   const [aiResponseMode, setAiResponseMode] = useState('Auto-detect');
   const [commentsLanguage, setCommentsLanguage] = useState('English (Default)');
   const [timezone, setTimezone] = useState('(UTC+5:30) Chennai, Kolkata, Mumbai, New Delhi');
@@ -78,7 +82,15 @@ export default function Settings() {
         
         // Populate settings state
         const s = setRes.data.data || {};
-        setDisplayLanguage(s.language || 'English');
+        const getLanguageCode = (val: string): string => {
+          if (!val) return 'en';
+          const clean = val.trim().toLowerCase();
+          const matched = SUPPORTED_LANGUAGES.find(
+            l => l.code === clean || l.name.toLowerCase() === clean || l.nativeName.toLowerCase() === clean
+          );
+          return matched ? matched.code : 'en';
+        };
+        setDisplayLanguage(getLanguageCode(s.language || 'en'));
         setAiResponseMode(s.aiResponseLang || 'Auto-detect');
         setTimezone(s.timezone || '(UTC+5:30) Chennai, Kolkata, Mumbai, New Delhi');
         setDateFormat(s.dateFormat || 'DD/MM/YYYY');
@@ -517,24 +529,39 @@ export default function Settings() {
             <div className="space-y-6">
               {/* Display Language */}
               <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-5">Display Language</h3>
-                <div className="grid grid-cols-4 gap-3">
-                  {[
-                    { id: 'English', code: 'EN' }, { id: 'Hindi', code: 'हि' },
-                    { id: 'Spanish', code: 'ES' }, { id: 'French', code: 'FR' },
-                    { id: 'German', code: 'DE' }, { id: 'Japanese', code: 'JA' },
-                    { id: 'Chinese', code: 'ZH' }, { id: 'More', code: '＋' },
-                  ].map(lang => {
-                    const sel = displayLanguage === lang.id;
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Display Language</h3>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Select from 60 supported languages. RTL layouts align automatically.</p>
+                  </div>
+                  <div className="relative w-full sm:w-64">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Search languages..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 max-h-[300px] overflow-y-auto pr-1">
+                  {SUPPORTED_LANGUAGES.filter(lang => 
+                    lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    lang.nativeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    lang.code.toLowerCase().includes(searchQuery.toLowerCase())
+                  ).map(lang => {
+                    const sel = displayLanguage === lang.code;
                     return (
                       <div
-                        key={lang.id}
-                        onClick={() => { if (lang.id !== 'More') setDisplayLanguage(lang.id); }}
-                        className={`cursor-pointer rounded-xl border p-4 text-center relative transition ${sel ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300'}`}
+                        key={lang.code}
+                        onClick={() => setDisplayLanguage(lang.code)}
+                        className={`cursor-pointer rounded-xl border p-3 text-center relative transition ${sel ? 'border-blue-600 bg-blue-50/20' : 'border-slate-200 hover:border-slate-300'}`}
                       >
-                        {sel && <div className="absolute top-2 right-2 w-3.5 h-3.5 bg-blue-600 rounded-full flex items-center justify-center"><Check className="w-2 h-2 text-white stroke-[3]" /></div>}
-                        <span className="text-sm font-black text-slate-800 block">{lang.code}</span>
-                        <span className="text-[10px] text-slate-400 uppercase font-medium">{lang.id}</span>
+                        {sel && <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-blue-600 rounded-full flex items-center justify-center"><Check className="w-2 h-2 text-white stroke-[3]" /></div>}
+                        <span className="text-xs font-black text-slate-800 block">{lang.nativeName}</span>
+                        <span className="text-[9px] text-slate-400 uppercase font-medium">{lang.name} ({lang.dir.toUpperCase()})</span>
                       </div>
                     );
                   })}
@@ -605,6 +632,7 @@ export default function Settings() {
                         dateFormat: dateFormat
                       });
                       setLanguage(displayLanguage); 
+                      i18n.changeLanguage(displayLanguage);
                       triggerToast('Language preferences saved ✓'); 
                     } catch (e) {
                       triggerToast('Failed to save Language preferences');

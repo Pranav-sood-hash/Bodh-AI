@@ -13,6 +13,11 @@ const expressPlugin = (): Plugin => {
       const { createServer: createExpressServer } = await import("./server/index");
       expressApp = createExpressServer();
 
+      if (server.httpServer) {
+        const { initSocket } = await import("./src/services/socket.service");
+        initSocket(server.httpServer as any);
+      }
+
       server.middlewares.use((req, res, next) => {
         // Only route /api requests to Express
         if (req.url?.startsWith("/api")) {

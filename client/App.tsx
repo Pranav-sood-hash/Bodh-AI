@@ -1,4 +1,5 @@
 import "./global.css";
+import "./i18n";
 
 import { Toaster } from "@/components/ui/toaster";
 import { createRoot } from "react-dom/client";
@@ -26,6 +27,8 @@ import ProjectBuilder from "./pages/ProjectBuilder";
 import Planner from "./pages/Planner";
 import Progress from "./pages/Progress";
 import Settings from "./pages/Settings";
+import Collab from "./pages/Collab";
+import Knowledge from "./pages/Knowledge";
 import NotFound from "./pages/NotFound";
 import Voice from "./pages/Voice";
 
@@ -80,6 +83,8 @@ const App = () => (
               <Route path="/projects" element={<ProtectedRoute><ProjectBuilder /></ProtectedRoute>} />
               <Route path="/planner" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
               <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
+              <Route path="/collab" element={<ProtectedRoute><Collab /></ProtectedRoute>} />
+              <Route path="/knowledge" element={<ProtectedRoute><Knowledge /></ProtectedRoute>} />
               
               {/* Nested settings routes */}
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

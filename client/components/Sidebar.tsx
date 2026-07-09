@@ -18,7 +18,9 @@ import {
   Trophy,
   HelpCircle,
   TrendingUp,
-  FlaskConical
+  FlaskConical,
+  Users,
+  BookOpen
 } from 'lucide-react';
 import TaskModeSelector from './modals/TaskModeSelector';
 import OnboardingModal from './modals/OnboardingModal';
@@ -78,6 +80,8 @@ export default function Sidebar({ userName }: SidebarProps) {
       { path: '/roadmap', label: 'Learning Path', icon: Map },
       { path: '/progress', label: 'Mastery', icon: TrendingUp },
       { path: '/projects', label: 'Project Lab', icon: FlaskConical },
+      { path: '/collab', label: 'Collab Rooms', icon: Users },
+      { path: '/knowledge', label: 'Knowledge Base', icon: BookOpen },
       { path: '/profile', label: 'Achievements', icon: Trophy, matchExact: true },
       { path: '/profile/security', label: 'Settings', icon: SettingsIcon, isSettings: true }
     ];
@@ -171,6 +175,8 @@ export default function Sidebar({ userName }: SidebarProps) {
   const coreNavItems = [
     { path: '/roadmap', label: 'Roadmap', icon: Map },
     { path: '/projects', label: 'Project Builder', icon: Wrench },
+    { path: '/collab', label: 'Collab Rooms', icon: Users },
+    { path: '/knowledge', label: 'Knowledge Base', icon: BookOpen },
     { path: '/planner', label: 'Productivity Planner', icon: Calendar },
     { path: '/progress', label: 'Progress Tracker', icon: BarChart3 },
     { path: '/settings', label: 'Settings', icon: SettingsIcon },

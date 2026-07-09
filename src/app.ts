@@ -17,6 +17,11 @@ import plannerRoutes from './routes/planner.routes';
 import progressRoutes from './routes/progress.routes';
 import folderRoutes from './routes/folder.routes';
 import settingsRoutes from './routes/settings.routes';
+import quizRoutes from './routes/quiz.routes';
+import collabRoutes from './routes/collab.routes';
+import knowledgeRoutes from './routes/knowledge.routes';
+import profileRoutes from './routes/profile.routes';
+import projectBuilderRoutes from './routes/projectBuilder.routes';
 import { handleChat } from '../server/routes/chat';
 
 import prisma from './config/db';
@@ -75,6 +80,11 @@ app.use('/api/planner', plannerRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/quiz', quizRoutes);
+app.use('/api/collab', collabRoutes);
+app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/project-builder', projectBuilderRoutes);
 
 // Error Handling
 app.use(notFound);

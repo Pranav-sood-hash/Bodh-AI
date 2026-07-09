@@ -72,6 +72,27 @@ export const sendMessage = asyncHandler(async (req, res) => {
     },
   });
 
+  let updatedTitle = chat.title;
+  if (chat.title === 'New Chat' || chat.title === 'Untitled Chat') {
+    try {
+      const titlePrompt = `Based on the following first message in a conversation, generate a short, concise, and clean 3-5 word chat title that captures the core topic. Do not include quotes or surrounding punctuation.
+Message: "${content}"`;
+      const titleResult = await callAI({
+        provider: selectedProvider,
+        rawKey,
+        messages: [{ role: 'user', content: titlePrompt }],
+        mode: 'FREE_CHAT',
+      });
+      const generatedTitle = titleResult.content.replace(/["']/g, '').trim();
+      if (generatedTitle && generatedTitle.length > 2) {
+        updatedTitle = generatedTitle;
+      }
+    } catch (err: any) {
+      console.error('Failed to generate AI chat title, falling back:', err.message);
+      updatedTitle = content.slice(0, 40) + '...';
+    }
+  }
+
   // Update chat metadata
   await prisma.chat.update({
     where: { id: chatId },
@@ -79,7 +100,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
       messageCount: { increment: 2 },
       lastMessage: aiResult.content.slice(0, 100),
       lastMessageAt: new Date(),
-      ...(chat.title === 'New Chat' && { title: content.slice(0, 50) }),
+      title: updatedTitle,
     },
   });
 
