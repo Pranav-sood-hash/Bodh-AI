@@ -58,6 +58,10 @@ export default function VoiceChatOverlay({ isOpen, onClose, chatId }: VoiceChatO
   }, [isOpen]);
 
   const cleanupSpeech = () => {
+    if (utteranceRef.current) {
+      utteranceRef.current.onend = null;
+      utteranceRef.current.onerror = null;
+    }
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -93,6 +97,10 @@ export default function VoiceChatOverlay({ isOpen, onClose, chatId }: VoiceChatO
     }
 
     // Cancel any active speech
+    if (utteranceRef.current) {
+      utteranceRef.current.onend = null;
+      utteranceRef.current.onerror = null;
+    }
     window.speechSynthesis.cancel();
 
     // Clean text: strip markdown characters for cleaner audio reading
@@ -200,13 +208,16 @@ export default function VoiceChatOverlay({ isOpen, onClose, chatId }: VoiceChatO
     };
 
     recognition.onerror = (e: any) => {
-      console.error('Speech recognition error:', e);
+      const errType = e.error || '';
+      if (errType !== 'no-speech' && errType !== 'aborted') {
+        console.error('Speech recognition error:', e);
+      }
       if (isComponentMounted.current) {
         // If it was aborted or no speech detected, go to idle
-        if (e.error === 'no-speech') {
+        if (errType === 'no-speech' || errType === 'aborted') {
           setStatus('idle');
         } else {
-          setError('Microphone error: ' + e.error);
+          setError('Microphone error: ' + errType);
           setStatus('idle');
         }
       }
@@ -267,6 +278,10 @@ export default function VoiceChatOverlay({ isOpen, onClose, chatId }: VoiceChatO
     setIsMuted(!isMuted);
     if (!isMuted && status === 'speaking') {
       // If we mute while speaking, cancel current voice output
+      if (utteranceRef.current) {
+        utteranceRef.current.onend = null;
+        utteranceRef.current.onerror = null;
+      }
       window.speechSynthesis.cancel();
       startListening();
     }
