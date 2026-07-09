@@ -54,7 +54,7 @@ var init_constants = __esm({
     JWT_ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || "15m";
     JWT_REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
     RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000");
-    RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX || "100");
+    RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX || "1000");
     CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
     PORT = parseInt(process.env.PORT || "5000");
     SYSTEM_PROMPTS = {
@@ -193,33 +193,44 @@ Be encouraging but honest. Wrong answers are learning opportunities, not failure
 
 // src/middleware/rateLimit.middleware.ts
 import rateLimit from "express-rate-limit";
-var isDev, apiLimiter, authLimiter, aiLimiter;
+var isDev, bypassRateLimit, getClientIp, apiLimiter, authLimiter, aiLimiter;
 var init_rateLimit_middleware = __esm({
   "src/middleware/rateLimit.middleware.ts"() {
     init_constants();
     isDev = process.env.NODE_ENV === "development";
-    apiLimiter = isDev ? (req, res, next) => next() : rateLimit({
+    bypassRateLimit = isDev || process.env.DISABLE_RATE_LIMIT === "true";
+    getClientIp = (req) => {
+      const xff = req.headers["x-forwarded-for"];
+      if (typeof xff === "string") {
+        return xff.split(",")[0].trim();
+      }
+      return req.ip || req.socket.remoteAddress || "unknown";
+    };
+    apiLimiter = bypassRateLimit ? (req, res, next) => next() : rateLimit({
       windowMs: RATE_LIMIT_WINDOW_MS,
       max: RATE_LIMIT_MAX,
       message: { success: false, message: "Too many requests, please try again later." },
       standardHeaders: true,
-      legacyHeaders: false
+      legacyHeaders: false,
+      keyGenerator: getClientIp
     });
-    authLimiter = isDev ? (req, res, next) => next() : rateLimit({
+    authLimiter = bypassRateLimit ? (req, res, next) => next() : rateLimit({
       windowMs: 15 * 60 * 1e3,
       // 15 minutes
-      max: 10,
+      max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || "30"),
       message: { success: false, message: "Too many auth attempts, please try again later." },
       standardHeaders: true,
-      legacyHeaders: false
+      legacyHeaders: false,
+      keyGenerator: getClientIp
     });
-    aiLimiter = isDev ? (req, res, next) => next() : rateLimit({
+    aiLimiter = bypassRateLimit ? (req, res, next) => next() : rateLimit({
       windowMs: 60 * 1e3,
       // 1 minute
-      max: 20,
+      max: parseInt(process.env.AI_RATE_LIMIT_MAX || "60"),
       message: { success: false, message: "AI rate limit reached. Please wait a moment." },
       standardHeaders: true,
-      legacyHeaders: false
+      legacyHeaders: false,
+      keyGenerator: getClientIp
     });
   }
 });
@@ -4432,6 +4443,7 @@ var init_app = __esm({
     init_db();
     init_passport();
     app = express();
+    app.set("trust proxy", 1);
     app.use(passport_default.initialize());
     app.use(helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" }

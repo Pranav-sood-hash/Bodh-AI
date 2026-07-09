@@ -28,6 +28,9 @@ import prisma from './config/db';
 
 const app = express();
 
+// Trust proxy settings for correct client IP detection behind load balancers/CDNs
+app.set('trust proxy', 1);
+
 // Security and utility middleware
 import passport from './config/passport';
 app.use(passport.initialize());

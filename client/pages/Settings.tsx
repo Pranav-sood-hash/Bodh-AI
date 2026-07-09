@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/axios';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import { useSettings } from '@/context/SettingsContext';
 import { useProfile as useProfileHook } from '@/hooks/useProfile';
 import { SUPPORTED_LANGUAGES } from '../i18n';
@@ -160,10 +161,11 @@ export default function Settings() {
         </div>
       )}
 
-      <main className="flex-1 pl-64 min-w-0 overflow-y-auto">
+      <main className="flex-1 lg:pl-[var(--sidebar-width)] min-w-0 overflow-y-auto">
+        <MobileTopBar title="Settings" />
 
         {/* Top bar */}
-        <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-30 select-none">
+        <div className="hidden lg:flex bg-white border-b border-slate-200 px-8 py-4 items-center justify-between sticky top-0 z-30 select-none">
           <div className="relative w-72">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
@@ -187,21 +189,23 @@ export default function Settings() {
         <div className="max-w-5xl mx-auto px-8 py-8 pb-16">
 
           {/* Horizontal tab bar */}
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit mb-8 select-none">
-            {tabs.map(t => (
-              <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === t.key
-                    ? 'bg-white text-slate-900 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {t.icon}
-                {t.label}
-              </button>
-            ))}
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full overflow-x-auto scrollbar-none mb-8 select-none">
+            <div className="flex gap-1 min-w-max">
+              {tabs.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    activeTab === t.key
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {t.icon}
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── PROFILE TAB ── */}
@@ -660,3 +664,4 @@ export default function Settings() {
     </div>
   );
 }
+

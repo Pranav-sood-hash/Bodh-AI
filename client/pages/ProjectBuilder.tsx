@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import { Wrench, CheckSquare, Square, Sparkles, Code, Search, Mic, Settings as SettingsIcon, Loader2 } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { useProjects } from '@/hooks/useProjects';
@@ -113,10 +114,13 @@ export default function ProjectBuilder() {
       <Sidebar userName={userName} />
 
       {/* Workspace Main Panel */}
-      <main className="flex-1 min-w-0 overflow-y-auto pl-64 relative z-10">
+      <main className="flex-1 min-w-0 overflow-y-auto lg:pl-[var(--sidebar-width)] relative z-10">
         
-        {/* Top bar search & profile */}
-        <div className="bg-white border-b border-slate-200/80 px-8 py-4 flex items-center justify-between sticky top-0 z-30 select-none">
+        {/* Mobile top bar */}
+        <MobileTopBar title="Project Builder" />
+
+        {/* Desktop Top bar search & profile */}
+        <div className="hidden lg:flex bg-white border-b border-slate-200/80 px-4 md:px-8 py-4 items-center justify-between sticky top-0 z-30 select-none">
           <div className="flex items-center gap-3 w-96 relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3" />
             <input
@@ -142,7 +146,7 @@ export default function ProjectBuilder() {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-8 py-10 space-y-10">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10 space-y-10">
           
           {/* Title Header */}
           <div className="space-y-2 select-none">
@@ -270,3 +274,5 @@ export default function ProjectBuilder() {
     </div>
   );
 }
+
+

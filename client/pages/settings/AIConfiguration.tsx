@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/axios';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import { useProfile } from '@/hooks/useProfile';
 import { 
   Sliders, 
@@ -112,10 +113,11 @@ export default function AIConfiguration() {
       <Sidebar userName={userName} />
 
       {/* Main light mode panel */}
-      <main className="flex-1 min-w-0 overflow-y-auto pl-64 relative z-10">
+      <main className="flex-1 min-w-0 overflow-y-auto lg:pl-[var(--sidebar-width)] relative z-10">
+        <MobileTopBar title="AI Configuration" />
         
         {/* Top bar search & profile */}
-        <div className="bg-white border-b border-slate-200/80 px-8 py-4 flex items-center justify-between sticky top-0 z-30 select-none">
+        <div className="hidden lg:flex bg-white border-b border-slate-200/80 px-4 md:px-8 py-4 items-center justify-between sticky top-0 z-30 select-none">
           <div className="flex items-center gap-3 w-96 relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3" />
             <input
@@ -148,7 +150,7 @@ export default function AIConfiguration() {
         <div className="max-w-5xl mx-auto px-8 py-8 space-y-8 pb-32">
           
           {/* Breadcrumbs & Header */}
-          <div className="flex items-center justify-between select-none">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
                 <span>AI Configuration</span>
@@ -166,23 +168,25 @@ export default function AIConfiguration() {
             </div>
 
             {/* Subtab toggle slider */}
-            <div className="flex bg-slate-200/50 p-1 rounded-xl">
-              <button
-                onClick={() => setActiveSubTab('overview')}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
-                  activeSubTab === 'overview' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Primary Model Config
-              </button>
-              <button
-                onClick={() => setActiveSubTab('detailed')}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
-                  activeSubTab === 'detailed' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                AI Engine Orchestration
-              </button>
+            <div className="flex bg-slate-200/50 p-1 rounded-xl w-full md:w-fit overflow-x-auto scrollbar-none">
+              <div className="flex gap-1 min-w-max w-full">
+                <button
+                  onClick={() => setActiveSubTab('overview')}
+                  className={`flex-1 text-center px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap ${
+                    activeSubTab === 'overview' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Primary Model Config
+                </button>
+                <button
+                  onClick={() => setActiveSubTab('detailed')}
+                  className={`flex-1 text-center px-4 py-2 text-xs font-bold rounded-lg transition whitespace-nowrap ${
+                    activeSubTab === 'detailed' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  AI Engine Orchestration
+                </button>
+              </div>
             </div>
           </div>
 
@@ -716,7 +720,7 @@ export default function AIConfiguration() {
         </div>
 
         {/* Sticky bottom save/discard bar in light mode */}
-        <div className="fixed bottom-0 left-64 right-0 border-t border-slate-200 bg-white/95 backdrop-blur-md px-8 py-4 flex items-center justify-end gap-4 z-40 select-none">
+        <div className="fixed bottom-0 lg:left-[var(--sidebar-width)] left-0 right-0 border-t border-slate-200 bg-white/95 backdrop-blur-md px-8 py-4 flex items-center justify-end gap-4 z-40 select-none">
           <button
             onClick={handleReset}
             className="text-xs font-bold text-slate-500 hover:text-slate-800 smooth-transition uppercase tracking-wider"
@@ -735,3 +739,5 @@ export default function AIConfiguration() {
     </div>
   );
 }
+
+

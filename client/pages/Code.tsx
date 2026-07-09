@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import CodeHelper from '@/components/CodeHelper';
 
 export default function Code() {
@@ -36,17 +36,10 @@ export default function Code() {
         onNavigate={() => setIsSidebarOpen(false)}
       />
 
-      <div className="flex-1 w-full min-w-0 overflow-auto pl-0 md:pl-20 lg:pl-64">
-        <div className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-lg border-b border-slate-700/50 px-4 md:px-6 lg:px-8 py-6">
+      <div className="flex-1 w-full min-w-0 overflow-auto lg:pl-[var(--sidebar-width)] transition-all duration-300">
+        <MobileTopBar title="Code Helper" />
+        <div className="hidden lg:block sticky top-0 z-40 bg-slate-900/80 backdrop-blur-lg border-b border-slate-700/50 px-4 md:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              aria-label="Open sidebar"
-              onClick={() => setIsSidebarOpen((open) => !open)}
-              className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg bg-slate-800/60 border border-slate-700/50 text-slate-200 hover:bg-slate-800 smooth-transition"
-            >
-              {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
             <div>
               <h1 className="text-3xl font-bold text-slate-100">Code Helper</h1>
               <p className="text-slate-400 mt-2">Understand code with detailed line-by-line explanations</p>

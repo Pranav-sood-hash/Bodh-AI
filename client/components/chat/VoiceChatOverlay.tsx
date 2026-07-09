@@ -213,8 +213,16 @@ export default function VoiceChatOverlay({ isOpen, onClose, chatId }: VoiceChatO
         console.error('Speech recognition error:', e);
       }
       if (isComponentMounted.current) {
-        // If it was aborted or no speech detected, go to idle
         if (errType === 'no-speech' || errType === 'aborted') {
+          setStatus('idle');
+        } else if (errType === 'not-allowed') {
+          setError('Microphone permission blocked. Please allow mic access in browser settings.');
+          setStatus('idle');
+        } else if (errType === 'audio-capture') {
+          setError('No microphone found. Please connect and enable a mic.');
+          setStatus('idle');
+        } else if (errType === 'network') {
+          setError('Network error. Check your internet connection.');
           setStatus('idle');
         } else {
           setError('Microphone error: ' + errType);

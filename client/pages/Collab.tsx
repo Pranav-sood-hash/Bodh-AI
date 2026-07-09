@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import api from '@/lib/axios';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import { 
   Users, MessageSquare, Plus, Search, Send, Shield, Globe, Lock, Hash, 
   ChevronRight, Sparkles, User, Circle, Radio, ArrowLeft, Terminal, AlertCircle
@@ -284,7 +285,12 @@ export default function Collab() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex overflow-hidden font-sans">
       <Sidebar userName={userName} />
 
-      <main className="flex-1 flex overflow-hidden pl-0 lg:pl-64">
+      <main className="flex-1 flex flex-col overflow-hidden lg:pl-[var(--sidebar-width)] transition-all duration-300">
+        {/* Mobile top bar */}
+        <MobileTopBar title="Collab Rooms" />
+
+        {/* Main content */}
+        <div className="flex-1 flex overflow-hidden">
         {/* ROOMS LIST VIEW */}
         {!activeRoom ? (
           <div className="flex-1 flex flex-col h-full overflow-y-auto bg-slate-900/50 p-6 md:p-8">
@@ -538,7 +544,7 @@ export default function Collab() {
             </div>
           </div>
         )}
-      </main>
+      </div>
 
       {/* CREATE ROOM MODAL */}
       {isCreateModalOpen && (
@@ -622,6 +628,7 @@ export default function Collab() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }

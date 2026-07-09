@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import { 
   Flame, 
   BookOpen, 
@@ -13,7 +14,8 @@ import {
   Search,
   Mic,
   Settings as SettingsIcon,
-  Loader2
+  Loader2,
+  Menu
 } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -147,8 +149,19 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#F4F6F9] text-slate-800 flex overflow-hidden font-sans">
       <Sidebar userName={userName} />
 
-      <main className="flex-1 min-w-0 overflow-y-auto pl-0 lg:pl-56 relative z-10 transition-all duration-300">
-        <div className="bg-white border-b border-slate-200/80 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-30 select-none">
+      <main className="flex-1 min-w-0 overflow-y-auto lg:pl-[var(--sidebar-width)] relative z-10 transition-all duration-300">
+        {/* Mobile top bar */}
+        <MobileTopBar 
+          title="BodhAI"
+          rightSlot={
+            <button onClick={() => navigate('/settings')} className="p-2 text-slate-500 hover:text-slate-700 transition">
+              <SettingsIcon className="w-4 h-4" />
+            </button>
+          }
+        />
+
+        {/* Desktop top bar */}
+        <div className="hidden lg:flex bg-white border-b border-slate-200/80 px-4 md:px-8 py-4 items-center justify-between sticky top-0 z-30 select-none">
           <div className="flex items-center gap-3 w-full md:w-96 relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3" />
             <input

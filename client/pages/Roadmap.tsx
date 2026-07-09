@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import { 
   Map, 
   CheckCircle2, 
@@ -194,10 +195,13 @@ export default function Roadmap() {
       <Sidebar userName={userName} />
 
       {/* Main Roadmap Area */}
-      <main className="flex-1 min-w-0 overflow-y-auto pl-0 lg:pl-56 relative z-10 transition-all duration-300">
+      <main className="flex-1 min-w-0 overflow-y-auto lg:pl-[var(--sidebar-width)] relative z-10 transition-all duration-300">
         
-        {/* Top bar search & profile */}
-        <div className="bg-white border-b border-slate-200/80 px-8 py-4 flex items-center justify-between sticky top-0 z-30 select-none">
+        {/* Mobile top bar */}
+        <MobileTopBar title="Learning Roadmap" />
+
+        {/* Desktop Top bar */}
+        <div className="hidden lg:flex bg-white border-b border-slate-200/80 px-4 md:px-8 py-4 items-center justify-between sticky top-0 z-30 select-none">
           <div className="flex items-center gap-3 w-96 relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3" />
             <input

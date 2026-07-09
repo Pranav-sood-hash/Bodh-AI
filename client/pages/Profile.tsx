@@ -5,6 +5,7 @@ import {
   Map, Wrench, Calendar, BarChart3, Sliders, LogOut, Loader2
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import MobileTopBar from '@/components/MobileTopBar';
 
 import api from "@/lib/axios";
 
@@ -110,10 +111,11 @@ export default function Profile() {
       <Sidebar userName={currentUserName} />
 
       {/* Main Page Layout Pane */}
-      <div className="flex-1 pl-[220px] flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-[var(--sidebar-width)] flex flex-col min-h-screen transition-all duration-300">
         
         {/* Top Navigation Header matching reference specs */}
-        <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-8 sticky top-0 z-30 select-none">
+        <MobileTopBar title="Profile" />
+        <header className="hidden lg:flex h-16 border-b border-slate-200 bg-white items-center justify-between px-8 sticky top-0 z-30 select-none">
           
           {/* Left Area: Navigation & Back Button */}
           <div className="flex items-center gap-6">
@@ -268,3 +270,4 @@ export default function Profile() {
     </div>
   );
 }
+

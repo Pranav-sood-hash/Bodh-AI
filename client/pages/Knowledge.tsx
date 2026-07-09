@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/axios';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import { 
   BookOpen, Search, Plus, Trash2, Edit, Sparkles, Send, FileText, 
   HelpCircle, ArrowLeft, Eye, UploadCloud, ChevronRight, CheckCircle2, 
@@ -292,9 +293,14 @@ export default function Knowledge() {
     <div className="min-h-screen bg-slate-950 text-slate-100 flex overflow-hidden font-sans">
       <Sidebar userName={userName} />
 
-      <main className="flex-1 flex overflow-hidden pl-0 lg:pl-64">
+      <main className="flex-1 flex flex-col overflow-hidden lg:pl-[var(--sidebar-width)] transition-all duration-300">
+        {/* Mobile top bar */}
+        <MobileTopBar title="Knowledge Base" />
+
+        {/* 3-panel layout — stacked on mobile, side-by-side on lg */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* LEFT COLUMN: LIST & SEARCH */}
-        <div className="w-80 border-r border-white/5 bg-slate-900/40 flex flex-col h-full">
+        <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-white/5 bg-slate-900/40 flex flex-col lg:h-full max-h-64 lg:max-h-full overflow-y-auto">
           <div className="p-5 border-b border-white/5">
             <h1 className="text-xl font-black text-white flex items-center gap-2.5 mb-1">
               <BookOpen className="w-5 h-5 text-cyan-400" />
@@ -657,7 +663,8 @@ export default function Knowledge() {
             </div>
           )}
         </div>
-      </main>
-    </div>
-  );
+      </div>
+    </main>
+  </div>
+);
 }

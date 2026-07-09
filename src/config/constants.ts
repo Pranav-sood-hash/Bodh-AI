@@ -4,7 +4,7 @@ export const MAX_OTP_ATTEMPTS = 5;
 export const JWT_ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || '15m';
 export const JWT_REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || '7d';
 export const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000');
-export const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX || '100');
+export const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX || '1000');
 export const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 export const PORT = parseInt(process.env.PORT || '5000');
 

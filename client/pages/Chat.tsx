@@ -4,6 +4,7 @@ import { useChat } from '@/context/ChatContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useProfile } from '@/hooks/useProfile';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import CodePlayground from '@/components/chat/CodePlayground';
 import CompareView from '@/components/chat/CompareView';
 import VoiceChatOverlay from '@/components/chat/VoiceChatOverlay';
@@ -15,7 +16,8 @@ import {
   Globe,
   Trash2,
   FileCode,
-  X
+  X,
+  Menu
 } from 'lucide-react';
 
 export default function Chat() {
@@ -124,18 +126,32 @@ export default function Chat() {
       <Sidebar userName={userName} />
 
       {/* Workspace Area */}
-      <div className="flex-1 pl-64 flex flex-col h-screen min-w-0 relative">
+      <div className="flex-1 lg:pl-[var(--sidebar-width)] flex flex-col h-screen min-w-0 relative transition-all duration-300">
         
-        {/* Workspace TopNav Header */}
-        <header className="h-16 border-b border-slate-200/80 bg-white px-6 flex items-center justify-between shrink-0 select-none sticky top-0 z-30">
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] bg-cyan-50 text-cyan-600 border border-cyan-200 px-2.5 py-1 rounded-lg font-bold tracking-wider uppercase leading-none">
+        {/* Mobile top bar */}
+        <MobileTopBar
+          title={chatSession.title}
+          rightSlot={
+            <button
+              onClick={handleDelete}
+              title="Delete session"
+              className="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 flex items-center justify-center transition"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          }
+        />
+
+        {/* Desktop Workspace TopNav Header */}
+        <header className="hidden lg:flex h-16 border-b border-slate-200/80 bg-white px-6 items-center justify-between shrink-0 select-none sticky top-0 z-30">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-[10px] bg-cyan-50 text-cyan-600 border border-cyan-200 px-2.5 py-1 rounded-lg font-bold tracking-wider uppercase leading-none flex-shrink-0">
               {chatSession.mode === 'voice' ? '🎙️ Speech' : chatSession.mode === 'compare' ? '🧠 Architecture' : '📚 Technical doubts'}
             </span>
             <h2 className="text-xs font-bold text-slate-850 truncate max-w-sm">{chatSession.title}</h2>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
             {chatSession.mode === 'voice' && (
               <button
                 onClick={() => setIsVoiceOverlayOpen(true)}
@@ -144,7 +160,7 @@ export default function Chat() {
                 <Mic className="w-3.5 h-3.5" /> Launch Voice Overlay
               </button>
             )}
-            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+            <div className="hidden md:flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
               <Globe className="w-3.5 h-3.5 text-cyan-500" />
               Voice Mode: <span className="text-cyan-600 font-bold">{settings.selectedVoice} ({settings.selectedLanguage})</span>
             </div>

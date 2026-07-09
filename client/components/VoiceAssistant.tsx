@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Mic, Volume2, Loader } from 'lucide-react';
+import { useSettings } from '@/context/SettingsContext';
 
 type Status = 'idle' | 'listening' | 'processing' | 'speaking';
 
@@ -9,6 +10,7 @@ interface Message {
 }
 
 export default function VoiceAssistant() {
+  const { settings } = useSettings();
   const [status, setStatus] = useState<Status>('idle');
   const [messages, setMessages] = useState<Message[]>([]);
   const [transcript, setTranscript] = useState('');
@@ -21,12 +23,56 @@ export default function VoiceAssistant() {
     (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   const speechSupported = !!SpeechRecognition;
 
+  // Convert settings language name to BCP 47 code
+  const getLanguageCode = (lang: string) => {
+    switch (lang.toLowerCase()) {
+      case 'hindi': return 'hi-IN';
+      case 'english': return 'en-US';
+      case 'spanish': return 'es-ES';
+      case 'french': return 'fr-FR';
+      case 'german': return 'de-DE';
+      default: return 'en-US';
+    }
+  };
+
   const speakText = (text: string) => {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
+    
+    // Clean text: strip markdown characters for cleaner audio reading
+    const cleanText = text
+      .replace(/[*_`#]/g, '')
+      .replace(/\[.*?\]\(.*?\)/g, '')
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+    // Set voice configuration from SettingsContext
+    utterance.pitch = settings.pitch || 1.0;
+    utterance.rate = settings.speed || 1.0;
+    utterance.lang = getLanguageCode(settings.selectedLanguage);
+
+    // Look for matching voice if possible
+    const voices = window.speechSynthesis.getVoices();
+    const targetLang = getLanguageCode(settings.selectedLanguage);
+    
+    let selectedVoiceObj = voices.find(
+      (v) => 
+        v.name.toLowerCase().includes(settings.selectedVoice.toLowerCase()) &&
+        v.lang.startsWith(targetLang.split('-')[0])
+    );
+
+    if (!selectedVoiceObj) {
+      selectedVoiceObj = voices.find((v) => v.lang.startsWith(targetLang.split('-')[0]));
+    }
+    if (!selectedVoiceObj) {
+      selectedVoiceObj = voices.find((v) => v.default);
+    }
+
+    if (selectedVoiceObj) {
+      utterance.voice = selectedVoiceObj;
+    }
+
     utterance.onend = () => setStatus('idle');
     window.speechSynthesis.speak(utterance);
   };
@@ -93,7 +139,7 @@ export default function VoiceAssistant() {
 
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
-    recognition.lang = 'en-US';
+    recognition.lang = getLanguageCode(settings.selectedLanguage);
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
@@ -103,8 +149,21 @@ export default function VoiceAssistant() {
       getAIResponse(spokenText);
     };
 
-    recognition.onerror = () => {
-      setError('Could not hear you. Please try again.');
+    recognition.onerror = (event: any) => {
+      const errType = event.error || '';
+      console.error('Speech recognition error:', event);
+      
+      if (errType === 'not-allowed') {
+        setError('Microphone permission blocked. Please allow microphone access in your browser settings.');
+      } else if (errType === 'no-speech') {
+        setError('No speech detected. Please check your microphone and speak clearly.');
+      } else if (errType === 'audio-capture') {
+        setError('No microphone found. Please ensure a microphone is connected and enabled.');
+      } else if (errType === 'network') {
+        setError('Network error during speech recognition. Please check your internet connection.');
+      } else {
+        setError(`Microphone error (${errType || 'unknown'}). Please check your mic settings and try again.`);
+      }
       setStatus('idle');
     };
 
@@ -112,7 +171,13 @@ export default function VoiceAssistant() {
       setStatus((currentStatus) => (currentStatus === 'listening' ? 'idle' : currentStatus));
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err: any) {
+      console.error('Failed to start speech recognition:', err);
+      setError('Could not start microphone. Please try refreshing the page.');
+      setStatus('idle');
+    }
   };
 
   const handlePlayResponse = () => {

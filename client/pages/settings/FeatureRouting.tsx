@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
+import MobileTopBar from '@/components/MobileTopBar';
 import { useProfile } from '@/hooks/useProfile';
 import { 
   Sliders, 
@@ -65,10 +66,11 @@ export default function FeatureRouting() {
       <Sidebar userName={userName} />
 
       {/* Main light mode panel */}
-      <main className="flex-1 min-w-0 overflow-y-auto pl-64 relative z-10">
+      <main className="flex-1 min-w-0 overflow-y-auto lg:pl-[var(--sidebar-width)] relative z-10">
+        <MobileTopBar title="Model Orchestration" />
         
         {/* Top bar search & profile */}
-        <div className="bg-white border-b border-slate-200/80 px-8 py-4 flex items-center justify-between sticky top-0 z-30 select-none">
+        <div className="hidden lg:flex bg-white border-b border-slate-200/80 px-4 md:px-8 py-4 items-center justify-between sticky top-0 z-30 select-none">
           <div className="flex items-center gap-3 w-96 relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3" />
             <input
@@ -436,7 +438,7 @@ export default function FeatureRouting() {
         </div>
 
         {/* Sticky footer */}
-        <div className="fixed bottom-0 left-64 right-0 border-t border-slate-200 bg-white/95 backdrop-blur-md px-8 py-4 flex items-center justify-end gap-4 z-40 select-none">
+        <div className="fixed bottom-0 lg:left-[var(--sidebar-width)] left-0 right-0 border-t border-slate-200 bg-white/95 backdrop-blur-md px-8 py-4 flex items-center justify-end gap-4 z-40 select-none">
           <button
             onClick={handleDiscard}
             className="text-xs font-bold text-slate-500 hover:text-slate-800 smooth-transition uppercase tracking-wider"
@@ -455,3 +457,5 @@ export default function FeatureRouting() {
     </div>
   );
 }
+
+

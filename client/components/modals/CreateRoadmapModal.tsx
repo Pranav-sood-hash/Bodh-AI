@@ -152,7 +152,7 @@ export default function CreateRoadmapModal({ isOpen, onClose, onGenerate }: Crea
                     <button
                       key={l}
                       onClick={() => setLevel(l)}
-                      className={`flex-1 text-center py-2 text-xs font-bold rounded-lg smooth-transition capitalize ${
+                      className={`flex-1 text-center py-2 text-xs font-bold rounded-lg smooth-transition capitalize whitespace-nowrap ${
                         isSelected
                           ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/20'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
@@ -178,7 +178,7 @@ export default function CreateRoadmapModal({ isOpen, onClose, onGenerate }: Crea
                     <button
                       key={w}
                       onClick={() => setWeeks(w)}
-                      className={`flex-1 text-center py-2 text-xs font-bold rounded-lg smooth-transition ${
+                      className={`flex-1 text-center py-2 text-xs font-bold rounded-lg smooth-transition whitespace-nowrap ${
                         isSelected
                           ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/20'
                           : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'

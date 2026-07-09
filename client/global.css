@@ -70,8 +70,7 @@
   }
 
   :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   pre,
@@ -147,5 +146,16 @@
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
