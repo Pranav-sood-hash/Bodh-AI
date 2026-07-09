@@ -11,6 +11,7 @@
    * Deep navy background (#0f172a equivalent) with blue, purple, pink neon accents
    */
   :root {
+    --sidebar-width: 256px;
     --background: 215 35% 9%;
     --foreground: 210 40% 98%;
 
@@ -111,5 +112,15 @@
 
 .animate-shake {
   animation: shake 0.4s ease-in-out;
+}
+
+/* Sidebar resizable container queries */
+@media (min-width: 1024px) {
+  .pl-64,
+  .lg\:pl-64,
+  .pl-56,
+  .lg\:pl-56 {
+    padding-left: var(--sidebar-width) !important;
+  }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useChat } from '@/context/ChatContext';
 import {
@@ -44,6 +44,57 @@ export default function Sidebar({ userName }: SidebarProps) {
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
+  const isProfileOrSettings = location.pathname.startsWith('/profile');
+  const storageKey = isProfileOrSettings ? 'sidebar-width-profile' : 'sidebar-width-chat';
+  const defaultWidth = isProfileOrSettings ? 220 : 256;
+
+  const [width, setWidth] = useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    return saved ? parseInt(saved, 10) : defaultWidth;
+  });
+
+  const isResizing = useRef(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    setWidth(saved ? parseInt(saved, 10) : defaultWidth);
+  }, [isProfileOrSettings, storageKey, defaultWidth]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+  }, [width]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizing.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return;
+      const newWidth = Math.max(200, Math.min(450, e.clientX));
+      setWidth(newWidth);
+      localStorage.setItem(storageKey, newWidth.toString());
+    };
+
+    const handleMouseUp = () => {
+      if (isResizing.current) {
+        isResizing.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [storageKey]);
+
   const handleSaveOnboarding = async (data: { goal: string; level: string; hours: number }) => {
     try {
       let mappedLevel = 'intermediate';
@@ -69,8 +120,6 @@ export default function Sidebar({ userName }: SidebarProps) {
   const handleLogout = () => {
     logout();
   };
-
-  const isProfileOrSettings = location.pathname.startsWith('/profile');
 
   if (isProfileOrSettings) {
     // RENDER THE HIGH-FIDELITY PROFILE & SETTINGS SPECIFIC SIDEBAR
@@ -100,7 +149,10 @@ export default function Sidebar({ userName }: SidebarProps) {
     };
 
     return (
-      <div className="fixed left-0 top-0 z-40 h-screen w-[220px] bg-slate-900 border-r border-slate-800 flex flex-col justify-between select-none">
+      <div 
+        style={{ width: `${width}px` }}
+        className="fixed left-0 top-0 z-40 h-screen bg-slate-900 border-r border-slate-800 flex flex-col justify-between select-none"
+      >
         <div>
           {/* TOP Brand Header */}
           <div 
@@ -167,6 +219,14 @@ export default function Sidebar({ userName }: SidebarProps) {
             </button>
           </div>
         </div>
+        {/* Resize Handle */}
+        <div
+          onMouseDown={handleMouseDown}
+          className="absolute top-0 right-0 w-[5px] h-full cursor-col-resize hover:bg-purple-500/30 active:bg-purple-500 transition-colors z-50 group/resize"
+          title="Drag to resize sidebar"
+        >
+          <div className="w-[1px] h-full bg-transparent group-hover/resize:bg-purple-500/50 mx-auto" />
+        </div>
       </div>
     );
   }
@@ -190,7 +250,10 @@ export default function Sidebar({ userName }: SidebarProps) {
 
   return (
     <>
-      <div className="fixed left-0 top-0 z-40 h-screen w-64 bg-slate-950/85 backdrop-blur-md border-r border-white/5 flex flex-col p-4 justify-between select-none">
+      <div 
+        style={{ width: `${width}px` }}
+        className="fixed left-0 top-0 z-40 h-screen bg-slate-950/85 backdrop-blur-md border-r border-white/5 flex flex-col p-4 justify-between select-none"
+      >
         
         {/* Upper Side */}
         <div className="space-y-6 flex-1 overflow-y-auto pr-1 scrollbar-thin">
@@ -353,6 +416,14 @@ export default function Sidebar({ userName }: SidebarProps) {
             <LogOut className="w-4 h-4" />
             <span>Logout</span>
           </button>
+        </div>
+        {/* Resize Handle */}
+        <div
+          onMouseDown={handleMouseDown}
+          className="absolute top-0 right-0 w-[5px] h-full cursor-col-resize hover:bg-purple-500/30 active:bg-purple-500 transition-colors z-50 group/resize"
+          title="Drag to resize sidebar"
+        >
+          <div className="w-[1px] h-full bg-transparent group-hover/resize:bg-purple-500/50 mx-auto" />
         </div>
       </div>
 
