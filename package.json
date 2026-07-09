@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "prisma generate && npm run build:client && npm run build:server && esbuild api/index.ts --bundle --platform=node --format=esm --packages=external --outfile=api/index.js && node -e \"const fs = require('fs'); if (process.env.VERCEL) { try { fs.unlinkSync('api/index.ts'); } catch (e) {} }\"",
+    "build": "prisma generate && npm run build:client && npm run build:server && esbuild api/index_src.ts --bundle --platform=node --format=esm --packages=external --outfile=api/index.js",
     "build:client": "vite build",
     "build:server": "vite build --config vite.config.server.ts",
     "start": "node dist/server/node-build.mjs",
