@@ -2,8 +2,6 @@ import prisma from '../config/db';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiResponse, ApiError } from '../utils/apiResponse';
 import { callAI } from '../services/ai/ai.router.service';
-// @ts-ignore
-import * as pdfParse from 'pdf-parse';
 
 export const uploadDocument = asyncHandler(async (req, res) => {
   const file = req.file;
@@ -19,6 +17,8 @@ export const uploadDocument = asyncHandler(async (req, res) => {
 
   if (fileType === 'application/pdf') {
     try {
+      // @ts-ignore
+      const pdfParse = await import('pdf-parse');
       const parseFn = (pdfParse as any).default || pdfParse;
       const data = await parseFn(file.buffer);
       text = data.text || '';
