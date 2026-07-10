@@ -33,7 +33,7 @@ export const useProjects = (page = 1, limit = 20) => {
   });
 
   const updateProjectMutation = useMutation({
-    mutationFn: async ({ id, ...payload }: { id: string; name?: string; description?: string; status?: string; priority?: string; techStack?: string[]; progress?: number; progressLabel?: string }) => {
+    mutationFn: async ({ id, ...payload }: { id: string; name?: string; description?: string; status?: string; priority?: string; techStack?: string[]; progress?: number; progressLabel?: string; isStepByStep?: boolean; hasSelectedMode?: boolean }) => {
       const { data } = await api.put(`/projects/${id}`, payload);
       return data.data;
     },

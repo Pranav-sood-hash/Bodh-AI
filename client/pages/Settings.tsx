@@ -125,16 +125,35 @@ export default function Settings() {
     } else throw new Error('Failed to save');
   };
 
-  const handleTestVoice = (name: string) => {
-    const map: Record<string, string> = {
-      Aria: "Hello, I am Aria. Soft and empathetic. Let's learn together!",
-      Atlas: 'System ready. Atlas online. Authoritative and deep.',
-      Priya: 'नमस्ते, मैं प्रिया हूँ। Warm and melodic.',
-      Rohan: "Hey! I'm Rohan. Ready to design some cool projects?",
-      Nova: 'Nova synthesis protocol active. Synthetic and precise.',
-      Luna: 'Luna mode. Serene and calm. Take a deep breath.',
+  const handleTestVoice = async (name: string) => {
+    const voiceMap: Record<string, { id: string; preview: string }> = {
+      Aria: { id: 'EXAVITQu4vr4xnSDxMaL', preview: 'Hi, I am Aria your BodhAI learning assistant.' },
+      Atlas: { id: 'VR6AewLTigWG4xSOukaG', preview: 'Hello, I am Atlas. Let us explore this together.' },
+      Priya: { id: 'XB0fDUnXU5powFXDhCwa', preview: 'Namaste! I am Priya, ready to help you learn.' },
+      Rohan: { id: 'onwK4e9ZLuTAKqWW03F9', preview: 'Hi there! I am Rohan. Let us get started!' },
+      Nova: { id: 'pFZP5JQG7iQjIQuC4Bku', preview: 'Greetings. I am Nova. Processing your request.' },
+      Luna: { id: 'jsCqWAovK2LkecY7zXl4', preview: 'Hello there. I am Luna. Shall we begin?' },
     };
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(map[name] || 'Hello!'));
+
+    const target = voiceMap[name];
+    if (!target) return;
+
+    try {
+      const response = await api.post('/voice/preview', {
+        voiceId: target.id,
+        voiceName: name
+      }, {
+        responseType: 'blob'
+      });
+
+      const audioUrl = URL.createObjectURL(response.data);
+      const audio = new Audio(audioUrl);
+      await audio.play();
+    } catch (err) {
+      console.warn('ElevenLabs preview failed, falling back to Web Speech API:', err);
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(target.preview));
+    }
   };
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [

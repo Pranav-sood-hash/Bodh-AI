@@ -41,6 +41,7 @@ interface ChatContextType {
   activeChatId: string | null;
   setActiveChatId: (id: string | null) => void;
   createNewChat: (title: string, mode: 'voice' | 'study' | 'code' | 'compare', attachmentFiles?: string[]) => Promise<string>;
+  startMilestonePracticeChat: (milestoneId: string) => Promise<string>;
   sendMessage: (chatId: string, text: string, mode?: string) => Promise<Message | null>;
   updateCodeOutput: (chatId: string, messageId: string, output: string) => void;
   deleteChat: (id: string) => void;
@@ -255,6 +256,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const startMilestonePracticeChat = async (milestoneId: string): Promise<string> => {
+    try {
+      const { data } = await api.post(`/roadmap/milestone/${milestoneId}/practice`);
+      const { chatId } = data.data;
+      await fetchChats();
+      setActiveChatId(chatId);
+      return chatId;
+    } catch (err) {
+      console.error('Failed to start milestone practice chat:', err);
+      throw err;
+    }
+  };
+
   const deleteChat = async (id: string) => {
     try {
       await api.delete(`/chats/${id}`);
@@ -373,6 +387,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeChatId,
         setActiveChatId,
         createNewChat,
+        startMilestonePracticeChat,
         sendMessage,
         updateCodeOutput,
         deleteChat,

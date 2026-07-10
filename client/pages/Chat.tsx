@@ -8,6 +8,8 @@ import MobileTopBar from '@/components/MobileTopBar';
 import CodePlayground from '@/components/chat/CodePlayground';
 import CompareView from '@/components/chat/CompareView';
 import VoiceChatOverlay from '@/components/chat/VoiceChatOverlay';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Send,
   Paperclip,
@@ -201,7 +203,13 @@ export default function Chat() {
                         : 'bg-white border border-slate-200/80 text-slate-700 mr-auto shadow-sm'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                    {isUser ? (
+                      <p className="whitespace-pre-wrap">{msg.text}</p>
+                    ) : (
+                      <div className="prose prose-sm prose-slate max-w-none text-xs [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[11px] [&_code]:font-mono [&_pre]:bg-slate-900 [&_pre]:text-slate-100 [&_pre]:rounded-xl [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_h4]:text-xs [&_strong]:text-slate-800">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
+                      </div>
+                    )}
                     <span className="text-[9px] text-slate-450 block text-right mt-2 select-none font-semibold">
                       {msg.timestamp}
                     </span>

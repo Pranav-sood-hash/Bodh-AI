@@ -18,7 +18,11 @@ import {
   BookOpen, 
   Award,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Wrench,
+  PartyPopper,
+  Upload,
+  X
 } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
 import { useRoadmap } from '@/hooks/useRoadmap';
@@ -26,6 +30,137 @@ import { useProfile } from '@/hooks/useProfile';
 import CreateRoadmapModal from '@/components/modals/CreateRoadmapModal';
 import { useQueryClient } from '@tanstack/react-query';
 import MilestoneQuizModal from '@/components/modals/MilestoneQuizModal';
+import api from '@/lib/axios';
+
+// ─── Last Milestone: Project Builder submit + AI Help ───────────────
+interface LastMilestoneActionsProps {
+  node: { id: string; title: string };
+  onAIHelp: () => void;
+  onValidated: (passed: boolean) => void;
+}
+
+function LastMilestoneActions({ node, onAIHelp, onValidated }: LastMilestoneActionsProps) {
+  const [mode, setMode] = React.useState<'choose' | 'upload' | 'result'>('choose');
+  const [file, setFile] = React.useState<File | null>(null);
+  const [isChecking, setIsChecking] = React.useState(false);
+  const [result, setResult] = React.useState<{ passed: boolean; score: number; feedback: { summary: string; strengths: string[]; improvements: string[] } } | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) setFile(e.target.files[0]);
+  };
+
+  const handleSubmit = async () => {
+    if (!file) return;
+    setIsChecking(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await api.post(`/roadmap/milestone/${node.id}/validate-project`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const data = res.data.data;
+      setResult(data);
+      setMode('result');
+      onValidated(data.passed);
+    } catch {
+      setResult({ passed: false, score: 0, feedback: { summary: 'Submission failed. Try again.', strengths: [], improvements: [] } });
+      setMode('result');
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  if (mode === 'choose') {
+    return (
+      <div className="space-y-2.5">
+        <p className="text-[10px] text-purple-600 font-extrabold uppercase tracking-wider text-center">🏁 Final Milestone — Choose how to complete</p>
+        <button
+          onClick={() => setMode('upload')}
+          className="w-full flex items-start gap-3 p-3.5 rounded-xl bg-gradient-to-br from-violet-600 to-purple-700 text-white text-left hover:brightness-105 smooth-transition shadow-sm"
+        >
+          <Wrench className="w-5 h-5 mt-0.5 shrink-0" />
+          <div>
+            <span className="text-xs font-extrabold block">Project Builder</span>
+            <span className="text-[10px] text-purple-200 leading-tight">Upload your file. AI checks if it matches this milestone's requirements and marks you complete.</span>
+          </div>
+        </button>
+        <button
+          onClick={onAIHelp}
+          className="w-full flex items-start gap-3 p-3.5 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white text-left hover:brightness-105 smooth-transition shadow-sm"
+        >
+          <Sparkles className="w-5 h-5 mt-0.5 shrink-0" />
+          <div>
+            <span className="text-xs font-extrabold block">AI Help</span>
+            <span className="text-[10px] text-blue-100 leading-tight">Start an AI-guided practice session on this milestone topic.</span>
+          </div>
+        </button>
+      </div>
+    );
+  }
+
+  if (mode === 'upload') {
+    return (
+      <div className="space-y-3 animate-fadeIn">
+        <button onClick={() => setMode('choose')} className="text-[10px] text-slate-400 hover:text-slate-600 font-bold flex items-center gap-1 transition">
+          ← Back
+        </button>
+        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Upload your milestone file</p>
+        <label className="flex flex-col items-center justify-center border-2 border-dashed border-purple-300 hover:border-purple-500 rounded-xl p-5 cursor-pointer bg-purple-50/50 transition gap-2">
+          <Upload className="w-5 h-5 text-purple-400" />
+          <span className="text-xs font-bold text-slate-600">{file ? file.name : 'Choose file to submit'}</span>
+          <span className="text-[9px] text-slate-400">.ts, .js, .py, .json, .md, .zip…</span>
+          <input type="file" className="hidden" onChange={handleFileChange} />
+        </label>
+        {file && (
+          <button
+            onClick={handleSubmit}
+            disabled={isChecking}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold text-xs uppercase tracking-wider disabled:opacity-60 smooth-transition shadow-sm"
+          >
+            {isChecking ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> AI is checking...</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Submit for AI Review</>}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // result
+  return (
+    <div className="space-y-3 animate-fadeIn">
+      <div className={`rounded-xl p-4 border ${result?.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+        <div className="flex items-center justify-between mb-2">
+          <span className={`text-xs font-extrabold ${result?.passed ? 'text-emerald-700' : 'text-amber-700'}`}>
+            {result?.passed ? '✅ Passed!' : '⚠️ Not yet — try again'}
+          </span>
+          <span className={`text-sm font-extrabold ${result?.passed ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {result?.score ?? 0}%
+          </span>
+        </div>
+        <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+          <div className={`h-full rounded-full ${result?.passed ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${result?.score ?? 0}%` }} />
+        </div>
+        <p className="text-[11px] text-slate-700 font-medium mb-2">{result?.feedback.summary}</p>
+        {(result?.feedback.strengths?.length ?? 0) > 0 && (
+          <div className="space-y-1">
+            <p className="text-[9px] font-extrabold text-emerald-600 uppercase tracking-wider">Strengths</p>
+            {result?.feedback.strengths.map((s, i) => <p key={i} className="text-[10px] text-slate-600">✓ {s}</p>)}
+          </div>
+        )}
+        {(result?.feedback.improvements?.length ?? 0) > 0 && (
+          <div className="space-y-1 mt-2">
+            <p className="text-[9px] font-extrabold text-amber-600 uppercase tracking-wider">Improvements</p>
+            {result?.feedback.improvements.map((s, i) => <p key={i} className="text-[10px] text-slate-600">→ {s}</p>)}
+          </div>
+        )}
+      </div>
+      {!result?.passed && (
+        <button onClick={() => { setMode('upload'); setFile(null); }} className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider smooth-transition">
+          Try Again
+        </button>
+      )}
+    </div>
+  );
+}
 
 interface RoadmapNode {
   id: string;
@@ -41,9 +176,10 @@ interface RoadmapNode {
   currentModule: string;
 }
 
+
 export default function Roadmap() {
   const navigate = useNavigate();
-  const { createNewChat } = useChat();
+  const { createNewChat, startMilestonePracticeChat } = useChat();
   const { 
     roadmap, 
     milestones, 
@@ -65,6 +201,7 @@ export default function Roadmap() {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [quizMilestoneId, setQuizMilestoneId] = useState('');
   const [quizMilestoneTitle, setQuizMilestoneTitle] = useState('');
+  const [showCapstoneBanner, setShowCapstoneBanner] = useState(false);
 
   const handleOpenQuiz = (id: string, title: string) => {
     setQuizMilestoneId(id);
@@ -126,21 +263,26 @@ export default function Roadmap() {
   });
 
   const handleStartPractice = async (node: RoadmapNode) => {
-    const title = `📚 Practice: ${node.title.split(': ')[1] || node.title}`;
     try {
-      const chatId = await createNewChat(title, 'study');
+      const chatId = await startMilestonePracticeChat(node.id);
       navigate(`/chat/${chatId}`);
     } catch (err) {
-      console.error('Failed to create chat:', err);
+      console.error('Failed to start practice chat:', err);
     }
   };
 
   const handleMarkComplete = async (nodeId: string) => {
     try {
       await updateMilestone({ id: nodeId, status: 'COMPLETED' });
-      // Update active node to the completed milestone, or next one
       const currentIndex = mappedMilestones.findIndex(m => m.id === nodeId);
-      if (currentIndex !== -1 && currentIndex + 1 < mappedMilestones.length) {
+      const isLastMilestone = currentIndex !== -1 && currentIndex === mappedMilestones.length - 1;
+
+      if (isLastMilestone) {
+        // All milestones done — backend auto-created a capstone project
+        setShowCapstoneBanner(true);
+        // Also invalidate projects query so Project Builder refreshes if open
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+      } else if (currentIndex !== -1 && currentIndex + 1 < mappedMilestones.length) {
         setActiveNodeId(mappedMilestones[currentIndex + 1].id);
       }
     } catch (err) {
@@ -226,6 +368,46 @@ export default function Roadmap() {
             </div>
           </div>
         </div>
+
+        {/* 🎉 Capstone Project Banner */}
+        {showCapstoneBanner && (
+          <div className="mx-4 md:mx-8 mt-6 animate-fadeIn">
+            <div className="relative bg-gradient-to-r from-violet-600 via-purple-600 to-pink-600 rounded-2xl p-5 shadow-xl overflow-hidden">
+              {/* Background shimmer */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-pulse" />
+              <div className="relative flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                    <PartyPopper className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-extrabold text-sm leading-tight">
+                      🎉 Roadmap Complete! Your Capstone Project is Ready
+                    </h3>
+                    <p className="text-purple-100 text-xs mt-0.5 leading-relaxed">
+                      We've auto-created a Capstone Project in your Project Builder using all the skills you mastered. Time to build something amazing!
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => navigate('/projects')}
+                    className="flex items-center gap-1.5 bg-white text-purple-700 hover:bg-purple-50 rounded-xl px-4 py-2.5 text-xs font-extrabold transition shadow-sm whitespace-nowrap"
+                  >
+                    <Wrench className="w-3.5 h-3.5" />
+                    Go to Project Builder
+                  </button>
+                  <button
+                    onClick={() => setShowCapstoneBanner(false)}
+                    className="p-2 rounded-xl hover:bg-white/20 text-white transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 space-y-10">
           
@@ -463,33 +645,56 @@ export default function Roadmap() {
                     {/* Actions */}
                     <div className="space-y-2.5 pt-2">
                       {node.status !== 'locked' ? (
-                        <>
-                          <button
-                            onClick={() => handleStartPractice(node)}
-                            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 smooth-transition shadow-sm"
-                          >
-                            <Play className="w-3 h-3 fill-current" />
-                            Practice Topic
-                          </button>
-                          
-                          {node.status !== 'completed' && (
-                            <div className="flex flex-col gap-2">
+                        (() => {
+                          const nodeIndex = mappedMilestones.findIndex(m => m.id === node.id);
+                          const isLastMilestone = nodeIndex === mappedMilestones.length - 1;
+
+                          if (isLastMilestone && node.status !== 'completed') {
+                            return (
+                              <LastMilestoneActions
+                                node={node}
+                                onAIHelp={() => handleStartPractice(node)}
+                                onValidated={(didPass) => {
+                                  if (didPass) {
+                                    queryClient.invalidateQueries({ queryKey: ['activeRoadmap'] });
+                                    queryClient.invalidateQueries({ queryKey: ['projects'] });
+                                    setShowCapstoneBanner(true);
+                                  }
+                                }}
+                              />
+                            );
+                          }
+
+                          return (
+                            <>
                               <button
-                                onClick={() => handleOpenQuiz(node.id, node.title)}
-                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 smooth-transition shadow-sm"
+                                onClick={() => handleStartPractice(node)}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 smooth-transition shadow-sm"
                               >
-                                <Award className="w-3.5 h-3.5" />
-                                Take Milestone Quiz
+                                <Play className="w-3 h-3 fill-current" />
+                                Practice Topic
                               </button>
-                              <button
-                                onClick={() => handleMarkComplete(node.id)}
-                                className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider smooth-transition"
-                              >
-                                Mark Completed (Skip Quiz)
-                              </button>
-                            </div>
-                          )}
-                        </>
+                              
+                              {node.status !== 'completed' && (
+                                <div className="flex flex-col gap-2">
+                                  <button
+                                    onClick={() => handleOpenQuiz(node.id, node.title)}
+                                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-bold text-xs uppercase tracking-wider hover:brightness-105 smooth-transition shadow-sm"
+                                  >
+                                    <Award className="w-3.5 h-3.5" />
+                                    Take Milestone Quiz
+                                  </button>
+                                  <button
+                                    onClick={() => handleMarkComplete(node.id)}
+                                    className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider smooth-transition"
+                                  >
+                                    Mark Completed (Skip Quiz)
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()
                       ) : (
                         <div className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 font-bold text-xs uppercase tracking-wider select-none">
                           <Lock className="w-3.5 h-3.5" />

@@ -35,46 +35,80 @@ export default function VoiceAssistant() {
     }
   };
 
-  const speakText = (text: string) => {
-    if (!window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    
+  const speakText = async (text: string) => {
     // Clean text: strip markdown characters for cleaner audio reading
     const cleanText = text
       .replace(/[*_`#]/g, '')
       .replace(/\[.*?\]\(.*?\)/g, '')
       .trim();
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    
-    // Set voice configuration from SettingsContext
-    utterance.pitch = settings.pitch || 1.0;
-    utterance.rate = settings.speed || 1.0;
-    utterance.lang = getLanguageCode(settings.selectedLanguage);
+    try {
+      const voiceMap: Record<string, string> = {
+        Aria: 'EXAVITQu4vr4xnSDxMaL',
+        Atlas: 'VR6AewLTigWG4xSOukaG',
+        Priya: 'XB0fDUnXU5powFXDhCwa',
+        Rohan: 'onwK4e9ZLuTAKqWW03F9',
+        Nova: 'pFZP5JQG7iQjIQuC4Bku',
+        Luna: 'jsCqWAovK2LkecY7zXl4',
+      };
 
-    // Look for matching voice if possible
-    const voices = window.speechSynthesis.getVoices();
-    const targetLang = getLanguageCode(settings.selectedLanguage);
-    
-    let selectedVoiceObj = voices.find(
-      (v) => 
-        v.name.toLowerCase().includes(settings.selectedVoice.toLowerCase()) &&
-        v.lang.startsWith(targetLang.split('-')[0])
-    );
+      const selectedVoice = settings.selectedVoice || 'Aria';
+      const voiceId = voiceMap[selectedVoice] || voiceMap.Aria;
 
-    if (!selectedVoiceObj) {
-      selectedVoiceObj = voices.find((v) => v.lang.startsWith(targetLang.split('-')[0]));
+      const response = await fetch('/api/voice/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: cleanText,
+          voiceId,
+          speed: settings.speed || 1.0
+        })
+      });
+
+      if (!response.ok) throw new Error('ElevenLabs TTS failed');
+
+      const blob = await response.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      audio.onended = () => setStatus('idle');
+      await audio.play();
+    } catch (err) {
+      console.warn('ElevenLabs TTS failed, falling back to Web Speech API:', err);
+      
+      if (!window.speechSynthesis) {
+        setStatus('idle');
+        return;
+      }
+      
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.pitch = settings.pitch || 1.0;
+      utterance.rate = settings.speed || 1.0;
+      utterance.lang = getLanguageCode(settings.selectedLanguage);
+
+      const voices = window.speechSynthesis.getVoices();
+      const targetLang = getLanguageCode(settings.selectedLanguage);
+      
+      let selectedVoiceObj = voices.find(
+        (v) => 
+          v.name.toLowerCase().includes(settings.selectedVoice.toLowerCase()) &&
+          v.lang.startsWith(targetLang.split('-')[0])
+      );
+
+      if (!selectedVoiceObj) {
+        selectedVoiceObj = voices.find((v) => v.lang.startsWith(targetLang.split('-')[0]));
+      }
+      if (!selectedVoiceObj) {
+        selectedVoiceObj = voices.find((v) => v.default);
+      }
+
+      if (selectedVoiceObj) {
+        utterance.voice = selectedVoiceObj;
+      }
+
+      utterance.onend = () => setStatus('idle');
+      window.speechSynthesis.speak(utterance);
     }
-    if (!selectedVoiceObj) {
-      selectedVoiceObj = voices.find((v) => v.default);
-    }
-
-    if (selectedVoiceObj) {
-      utterance.voice = selectedVoiceObj;
-    }
-
-    utterance.onend = () => setStatus('idle');
-    window.speechSynthesis.speak(utterance);
   };
 
   const getAIResponse = async (userText: string) => {

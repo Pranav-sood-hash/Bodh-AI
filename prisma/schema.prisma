@@ -49,6 +49,7 @@ model User {
   // Voice
   voiceEnabled     Boolean   @default(false)
   selectedVoice    String    @default("aria")
+  selectedVoiceId  String?   // ElevenLabs voice ID
   voiceSpeed       Float     @default(1.0)
   autoPlayVoice    Boolean   @default(false)
   micSensitivity   Int       @default(75)
@@ -211,12 +212,14 @@ model Chat {
   messageCount     Int       @default(0)
   lastMessage      String?
   lastMessageAt    DateTime?
+  milestoneId      String?   // link to milestone
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   folder           Folder?   @relation(fields: [folderId], references: [id])
   messages         Message[]
+  milestone        RoadmapMilestone? @relation(fields: [milestoneId], references: [id])
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, isPinned])
@@ -359,6 +362,7 @@ model RoadmapMilestone {
 
   roadmap        Roadmap         @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
   quizAttempts   QuizAttempt[]
+  chats          Chat[]
 
   @@index([roadmapId, order])
   @@map("roadmap_milestones")
@@ -376,20 +380,28 @@ enum MilestoneStatus {
 // ─────────────────────────────────────
 
 model Project {
-  id             String        @id @default(cuid())
-  userId         String
-  name           String
-  description    String?
-  status         ProjectStatus @default(PLANNING)
-  priority       Priority      @default(MEDIUM)
-  techStack      String[]
-  coverImage     String?
-  progress       Float         @default(0)
-  progressLabel  String?
-  chatId         String?
-  activeSprints  Int           @default(0)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                   String        @id @default(cuid())
+  userId               String
+  name                 String
+  description          String?
+  status               ProjectStatus @default(PLANNING)
+  priority             Priority      @default(MEDIUM)
+  techStack            String[]
+  coverImage           String?
+  progress             Float         @default(0)
+  progressLabel        String?
+  chatId               String?
+  activeSprints        Int           @default(0)
+  isStepByStep         Boolean       @default(false)
+  hasSelectedMode      Boolean       @default(false)
+  problemStatement     String?       @db.Text
+  submittedFileUrl     String?
+  submittedFileName    String?
+  submittedAt          DateTime?
+  aiValidationScore    Float?
+  aiValidationFeedback String?       @db.Text
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   sprints        Sprint[]
@@ -650,6 +662,7 @@ model ProjectStep {
   submittedFileUrl   String?
   submittedFileName  String?
   submittedAt        DateTime?
+  hint               String?  @db.Text
   aiFeedback         String?  @db.Text
   aiScore            Float?
   aiSuggestions      String[]

@@ -22,6 +22,7 @@ import collabRoutes from './routes/collab.routes';
 import knowledgeRoutes from './routes/knowledge.routes';
 import profileRoutes from './routes/profile.routes';
 import projectBuilderRoutes from './routes/projectBuilder.routes';
+import voiceRoutes from './routes/voice.routes';
 import { handleChat } from '../server/routes/chat';
 
 import prisma from './config/db';
@@ -88,6 +89,7 @@ app.use('/api/collab', collabRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/project-builder', projectBuilderRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // Error Handling
 app.use(notFound);
