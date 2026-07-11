@@ -44,6 +44,9 @@ var init_polyfill = __esm({
         };
       }
     }
+    BigInt.prototype.toJSON = function() {
+      return Number(this);
+    };
   }
 });
 
@@ -348,9 +351,7 @@ var init_db = __esm({
     prisma = global.prisma || new PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"]
     });
-    if (process.env.NODE_ENV !== "production") {
-      global.prisma = prisma;
-    }
+    global.prisma = prisma;
     db_default = prisma;
   }
 });
@@ -1588,131 +1589,149 @@ var init_ai_router_service = __esm({
       const { provider, rawKey, model, messages, mode, maxTokens = 4e3 } = params;
       const systemPrompt = SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.FREE_CHAT;
       logger.info(`[AI] Calling provider=${provider.toUpperCase()} mode=${mode}`);
-      switch (provider.toUpperCase()) {
-        // ─── OpenAI (GPT-4o) ───────────────────────────────────────────
-        case "OPENAI": {
-          const { default: OpenAI } = await import("openai");
-          const client = new OpenAI({ apiKey: rawKey });
-          const resp = await client.chat.completions.create({
-            model: model || "gpt-4o",
-            messages: [
-              { role: "system", content: systemPrompt },
-              ...messages.map((m) => ({ role: m.role, content: m.content }))
-            ],
-            max_tokens: maxTokens,
-            temperature: 0.7
-          });
-          return {
-            content: resp.choices[0].message.content || "",
-            model: resp.model,
-            tokens: {
-              prompt: resp.usage?.prompt_tokens || 0,
-              completion: resp.usage?.completion_tokens || 0,
-              total: resp.usage?.total_tokens || 0
-            }
-          };
-        }
-        // ─── Anthropic (Claude) ────────────────────────────────────────
-        case "ANTHROPIC": {
-          const Anthropic = await import("@anthropic-ai/sdk");
-          const client = new Anthropic.default({ apiKey: rawKey });
-          const resp = await client.messages.create({
-            model: model || "claude-3-5-sonnet-20241022",
-            max_tokens: maxTokens,
-            system: systemPrompt,
-            messages: messages.map((m) => ({
-              role: m.role === "user" ? "user" : "assistant",
-              content: m.content
-            }))
-          });
-          const textBlock = resp.content[0];
-          return {
-            content: textBlock.type === "text" ? textBlock.text : "",
-            model: resp.model,
-            tokens: {
-              prompt: resp.usage.input_tokens,
-              completion: resp.usage.output_tokens,
-              total: resp.usage.input_tokens + resp.usage.output_tokens
-            }
-          };
-        }
-        // ─── Google Gemini ─────────────────────────────────────────────
-        case "GEMINI": {
-          const { GoogleGenerativeAI } = await import("@google/generative-ai");
-          const genAI = new GoogleGenerativeAI(rawKey);
-          const gemModel = genAI.getGenerativeModel({
-            model: model || "gemini-1.5-pro",
-            systemInstruction: systemPrompt
-          });
-          const chat = gemModel.startChat({
-            history: messages.slice(0, -1).map((m) => ({
-              role: m.role === "user" ? "user" : "model",
-              parts: [{ text: m.content }]
-            }))
-          });
-          const lastMsg = messages[messages.length - 1];
-          const resp = await chat.sendMessage(lastMsg.content);
-          const usageMeta = resp.response.usageMetadata;
-          return {
-            content: resp.response.text(),
-            model: model || "gemini-1.5-pro",
-            tokens: {
-              prompt: usageMeta?.promptTokenCount || 0,
-              completion: usageMeta?.candidatesTokenCount || 0,
-              total: usageMeta?.totalTokenCount || 0
-            }
-          };
-        }
-        // ─── Groq (LLaMA 3) ───────────────────────────────────────────
-        case "GROQ": {
-          const Groq = await import("groq-sdk");
-          const client = new Groq.default({ apiKey: rawKey });
-          const resp = await client.chat.completions.create({
-            model: model || "llama-3.3-70b-versatile",
-            messages: [
-              { role: "system", content: systemPrompt },
-              ...messages.map((m) => ({ role: m.role, content: m.content }))
-            ],
-            max_tokens: maxTokens
-          });
-          return {
-            content: resp.choices[0].message.content || "",
-            model: resp.model || model || "llama-3.3-70b-versatile",
-            tokens: {
-              prompt: resp.usage?.prompt_tokens || 0,
-              completion: resp.usage?.completion_tokens || 0,
-              total: resp.usage?.total_tokens || 0
-            }
-          };
-        }
-        // ─── Cohere (Command R+) ───────────────────────────────────────
-        case "COHERE": {
-          const { CohereClientV2 } = await import("cohere-ai");
-          const client = new CohereClientV2({ token: rawKey });
-          const resp = await client.chat({
-            model: model || "command-r-plus-08-2024",
-            messages: [
-              { role: "system", content: systemPrompt },
-              ...messages.map((m) => ({
+      const isPlaceholder = (key) => {
+        return !key || key.toLowerCase().includes("your_") || key.toLowerCase().includes("placeholder");
+      };
+      const executeProviderCall = async (prov, key, mdl) => {
+        switch (prov.toUpperCase()) {
+          case "OPENAI": {
+            const { default: OpenAI } = await import("openai");
+            const client = new OpenAI({ apiKey: key });
+            const resp = await client.chat.completions.create({
+              model: mdl || "gpt-4o",
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...messages.map((m) => ({ role: m.role, content: m.content }))
+              ],
+              max_tokens: maxTokens,
+              temperature: 0.7
+            });
+            return {
+              content: resp.choices[0].message.content || "",
+              model: resp.model,
+              tokens: {
+                prompt: resp.usage?.prompt_tokens || 0,
+                completion: resp.usage?.completion_tokens || 0,
+                total: resp.usage?.total_tokens || 0
+              }
+            };
+          }
+          case "ANTHROPIC": {
+            const Anthropic = await import("@anthropic-ai/sdk");
+            const client = new Anthropic.default({ apiKey: key });
+            const resp = await client.messages.create({
+              model: mdl || "claude-3-5-sonnet-20241022",
+              max_tokens: maxTokens,
+              system: systemPrompt,
+              messages: messages.map((m) => ({
                 role: m.role === "user" ? "user" : "assistant",
                 content: m.content
               }))
-            ],
-            maxTokens
-          });
-          const textContent = resp.message?.content?.[0];
-          return {
-            content: textContent?.type === "text" ? textContent.text : "",
-            model: resp.model || model || "command-r-plus-08-2024",
-            tokens: {
-              prompt: resp.usage?.tokens?.inputTokens || 0,
-              completion: resp.usage?.tokens?.outputTokens || 0,
-              total: (resp.usage?.tokens?.inputTokens || 0) + (resp.usage?.tokens?.outputTokens || 0)
-            }
-          };
+            });
+            const textBlock = resp.content[0];
+            return {
+              content: textBlock.type === "text" ? textBlock.text : "",
+              model: resp.model,
+              tokens: {
+                prompt: resp.usage.input_tokens,
+                completion: resp.usage.output_tokens,
+                total: resp.usage.input_tokens + resp.usage.output_tokens
+              }
+            };
+          }
+          case "GEMINI": {
+            const { GoogleGenerativeAI } = await import("@google/generative-ai");
+            const genAI = new GoogleGenerativeAI(key);
+            const gemModel = genAI.getGenerativeModel({
+              model: mdl || "gemini-1.5-pro",
+              systemInstruction: systemPrompt
+            });
+            const chat = gemModel.startChat({
+              history: messages.slice(0, -1).map((m) => ({
+                role: m.role === "user" ? "user" : "model",
+                parts: [{ text: m.content }]
+              }))
+            });
+            const lastMsg = messages[messages.length - 1];
+            const resp = await chat.sendMessage(lastMsg.content);
+            const usageMeta = resp.response.usageMetadata;
+            return {
+              content: resp.response.text(),
+              model: mdl || "gemini-1.5-pro",
+              tokens: {
+                prompt: usageMeta?.promptTokenCount || 0,
+                completion: usageMeta?.candidatesTokenCount || 0,
+                total: usageMeta?.totalTokenCount || 0
+              }
+            };
+          }
+          case "GROQ": {
+            const Groq = await import("groq-sdk");
+            const client = new Groq.default({ apiKey: key });
+            const resp = await client.chat.completions.create({
+              model: mdl || "llama-3.3-70b-versatile",
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...messages.map((m) => ({ role: m.role, content: m.content }))
+              ],
+              max_tokens: maxTokens
+            });
+            return {
+              content: resp.choices[0].message.content || "",
+              model: resp.model || mdl || "llama-3.3-70b-versatile",
+              tokens: {
+                prompt: resp.usage?.prompt_tokens || 0,
+                completion: resp.usage?.completion_tokens || 0,
+                total: resp.usage?.total_tokens || 0
+              }
+            };
+          }
+          case "COHERE": {
+            const { CohereClientV2 } = await import("cohere-ai");
+            const client = new CohereClientV2({ token: key });
+            const resp = await client.chat({
+              model: mdl || "command-r-plus-08-2024",
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...messages.map((m) => ({
+                  role: m.role === "user" ? "user" : "assistant",
+                  content: m.content
+                }))
+              ],
+              maxTokens
+            });
+            const textContent = resp.message?.content?.[0];
+            return {
+              content: textContent?.type === "text" ? textContent.text : "",
+              model: resp.model || mdl || "command-r-plus-08-2024",
+              tokens: {
+                prompt: resp.usage?.tokens?.inputTokens || 0,
+                completion: resp.usage?.tokens?.outputTokens || 0,
+                total: (resp.usage?.tokens?.inputTokens || 0) + (resp.usage?.tokens?.outputTokens || 0)
+              }
+            };
+          }
+          default:
+            throw new Error(`Unsupported AI provider: ${prov}. Supported: OPENAI, ANTHROPIC, GEMINI, GROQ, COHERE`);
         }
-        default:
-          throw new Error(`Unsupported AI provider: ${provider}. Supported: OPENAI, ANTHROPIC, GEMINI, GROQ, COHERE`);
+      };
+      const normalizedProvider = provider.toUpperCase();
+      if (isPlaceholder(rawKey) && normalizedProvider !== "GROQ") {
+        logger.warn(`[AI Router] Primary key for ${normalizedProvider} is placeholder. Falling back to GROQ model.`);
+        const fallbackModel = normalizedProvider === "OPENAI" ? "llama-3.3-70b-versatile" : normalizedProvider === "GEMINI" ? "gemma2-9b-it" : normalizedProvider === "ANTHROPIC" ? "mixtral-8x7b-32768" : "llama-3.1-8b-instant";
+        const groqKey = process.env.GROQ_API_KEY || "";
+        return executeProviderCall("GROQ", groqKey, fallbackModel);
+      }
+      try {
+        return await executeProviderCall(normalizedProvider, rawKey, model);
+      } catch (err) {
+        logger.warn(`[AI Router] Direct call to ${normalizedProvider} failed: ${err.message}. Invoking GROQ fallback.`);
+        if (normalizedProvider === "GROQ") {
+          throw err;
+        }
+        const fallbackModel = normalizedProvider === "OPENAI" ? "llama-3.3-70b-versatile" : normalizedProvider === "GEMINI" ? "gemma2-9b-it" : normalizedProvider === "ANTHROPIC" ? "mixtral-8x7b-32768" : "llama-3.1-8b-instant";
+        const groqKey = process.env.GROQ_API_KEY || "";
+        return executeProviderCall("GROQ", groqKey, fallbackModel);
       }
     };
   }
@@ -5241,6 +5260,797 @@ var init_voice_routes = __esm({
   }
 });
 
+// src/services/ai/debate.prompts.ts
+var buildRound1Prompt, buildRound2Prompt, buildRound3Prompt, buildSynthesisPrompt;
+var init_debate_prompts = __esm({
+  "src/services/ai/debate.prompts.ts"() {
+    buildRound1Prompt = (question, provider, mode, totalParticipants) => `
+You are ${provider} participating in a 
+structured multi-AI expert debate with 
+${totalParticipants} AI models total.
+
+THIS IS ROUND 1 \u2014 Your Initial Position.
+
+Your job: Give your absolute BEST answer.
+Other AI models will read and critique it next.
+Make your reasoning transparent and clear.
+Be specific, not generic.
+
+QUESTION / TASK:
+"${question}"
+
+INSTRUCTIONS:
+- Give your most accurate, complete answer
+- Show your reasoning step by step
+- Include code examples if relevant to the topic
+- State any important assumptions you make
+- End with: "CONFIDENCE: [High/Medium/Low] because..."
+- Do NOT be vague \u2014 commit to your position
+- Length: As thorough as the question requires
+
+Your response will be evaluated by other AIs 
+and a final synthesizer. Make it count.`;
+    buildRound2Prompt = (question, myProvider, myRound1Answer, othersAnswers) => `
+You are ${myProvider} in Round 2 of a 
+structured AI debate.
+
+ORIGINAL QUESTION:
+"${question}"
+
+YOUR ROUND 1 ANSWER:
+${myRound1Answer}
+
+OTHER AI MODELS' ANSWERS:
+${othersAnswers.map((o) => `
+\u2501\u2501\u2501 ${o.provider} said: \u2501\u2501\u2501
+${o.content}
+`).join("\n")}
+
+YOUR ROUND 2 TASK \u2014 Respond in this EXACT format:
+
+## \u2705 Points I Agree With
+List specific points from other models that 
+are correct. Quote them briefly.
+Explain WHY you agree with evidence.
+
+## \u274C Points I Challenge  
+List specific points from other models that
+are wrong, incomplete, or misleading.
+Give your reasoning and evidence for WHY.
+Be direct and specific \u2014 not vague criticism.
+
+## \u{1F4A1} Critical Points Everyone Missed
+What important aspect did NO model cover yet?
+This is your chance to add unique value.
+
+## \u{1F504} My Revised & Stronger Answer
+Rewrite your answer incorporating:
+- Valid points you learned from others
+- Corrections to errors in your Round 1 answer
+- Defense of your correct original positions
+- New insights from the cross-examination
+
+This revised answer should be NOTICEABLY 
+BETTER than your Round 1 answer.
+If you had nothing to revise, your Round 1 
+was already perfect \u2014 say so and explain why.
+
+End with: "REVISED CONFIDENCE: [High/Medium/Low]"`;
+    buildRound3Prompt = (question, myProvider, myRound1, myRound2, othersRound2) => `
+You are ${myProvider} in Round 3 \u2014 
+your FINAL position in the AI debate.
+
+QUESTION: "${question}"
+
+YOUR JOURNEY:
+Round 1 (your initial): ${myRound1.slice(0, 300)}...
+
+Round 2 (after seeing others): ${myRound2.slice(0, 300)}...
+
+OTHERS' ROUND 2 RESPONSES:
+${othersRound2.map((o) => `
+${o.provider}: ${o.content.slice(0, 400)}...
+`).join("\n")}
+
+FINAL ROUND TASK:
+This is your last statement before synthesis.
+
+Give your DEFINITIVE FINAL ANSWER:
+1. Start with "## FINAL POSITION:"
+2. Give your complete best answer
+   (clean, no debate format \u2014 just the answer)
+3. Then "## What Changed From Round 1:"
+   (briefly what you updated and why)
+4. Then "## What I Stand By:"
+   (what you defended successfully)
+5. Final confidence: 0-100
+
+Make this your masterpiece answer.
+The synthesizer will use this as primary input.`;
+    buildSynthesisPrompt = (question, allRounds, providers) => `
+You are the MASTER SYNTHESIZER in a 
+multi-AI debate. Your job is to read all 
+debate rounds and produce ONE definitive, 
+superior answer.
+
+DEBATE QUESTION:
+"${question}"
+
+PARTICIPANTS: ${providers.join(", ")}
+
+ALL DEBATE ROUNDS:
+${allRounds.map((r) => `
+\u2554\u2550\u2550 Round ${r.round} | ${r.provider} 
+  (${r.role}) \u2550\u2550\u2557
+${r.content}
+\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D
+`).join("\n")}
+
+YOUR SYNTHESIS TASK:
+Produce the SINGLE BEST answer by combining 
+the strongest elements from all rounds.
+
+Return ONLY this exact JSON structure:
+
+{
+  "consensus": "FULL MARKDOWN ANSWER HERE.
+This must be the definitive best answer to the question. It should be better than any single model's answer because it combines the best insights from all.
+Include: clear explanation, examples, code if relevant, edge cases, practical guidance.
+Format properly with markdown headers, bullet points, code blocks etc.
+Minimum 200 words for complex topics.",
+  "executiveSummary": "2-3 sentence TL;DR of the consensus answer for users who want the quick version.",
+  "contributions": {
+    "PROVIDER_NAME": "The unique, specific insight this model contributed that made it into the final answer",
+    "PROVIDER_NAME_2": "Their contribution"
+  },
+  "agreements": [
+    "Point all models agreed on",
+    "Another agreement point"
+  ],
+  "debates": [
+    {
+      "topic": "What was debated",
+      "positions": {
+        "PROVIDER_A": "Their position",
+        "PROVIDER_B": "Their position"
+      },
+      "resolution": "How it was resolved in the final answer"
+    }
+  ],
+  "keyInsights": [
+    "Most important insight from the debate",
+    "Second key insight",
+    "Third key insight"
+  ],
+  "whatWasImproved": "What changed between Round 1 and final positions \u2014 what did the debate process actually improve?",
+  "confidenceScore": 85,
+  "winner": "PROVIDER_NAME if one model was clearly most accurate, or null if it was a collaborative result",
+  "winnerReason": "Why this provider won, or why no single winner if null",
+  "warningFlags": [
+    "Any important caveats about the answer",
+    "Edge cases where answer may not apply"
+  ]
+}
+
+SYNTHESIS RULES:
+- The consensus must be BETTER than any single model's answer
+- If all models agreed \u2192 summarize clearly
+- If models disagreed \u2192 take the more logically sound position and explain why
+- Include concrete examples from the debate
+- Do not pick a winner just to pick one
+- Be intellectually honest about uncertainty
+- Ensure the returned text is VALID, PARSABLE JSON only, with no other text, markdown wrapper, or trailing blocks outside the JSON object.`;
+  }
+});
+
+// src/services/ai/debate.service.ts
+var processAIMessage, runDebate, runRound;
+var init_debate_service = __esm({
+  "src/services/ai/debate.service.ts"() {
+    init_db();
+    init_encryption_service();
+    init_ai_router_service();
+    init_debate_prompts();
+    processAIMessage = async (params) => {
+      const { providerOverride, messages, mode, rawKey } = params;
+      let keyToUse = rawKey;
+      if (!keyToUse) {
+        const dbKey = await db_default.apiKey.findFirst({
+          where: {
+            userId: params.userId,
+            provider: providerOverride,
+            isActive: true
+          }
+        });
+        if (dbKey) {
+          keyToUse = decrypt(dbKey.encryptedKey);
+        } else {
+          keyToUse = process.env[`${providerOverride.toUpperCase()}_API_KEY`];
+        }
+      }
+      if (!keyToUse) {
+        throw new Error(`API key for provider ${providerOverride} not found.`);
+      }
+      return await callAI({
+        provider: providerOverride,
+        rawKey: keyToUse,
+        messages,
+        mode
+      });
+    };
+    runDebate = async ({
+      userId,
+      question,
+      providers,
+      mode,
+      totalRounds,
+      userContext,
+      onRoundComplete
+    }) => {
+      const apiKeys = await db_default.apiKey.findMany({
+        where: {
+          userId,
+          isActive: true,
+          provider: { in: providers }
+        }
+      });
+      const availableProviders = apiKeys.map(
+        (k) => k.provider
+      );
+      if (availableProviders.length < 2) {
+        throw new Error(
+          `Only ${availableProviders.length} provider(s) found. Need at least 2. Add more API keys in Settings \u2192 AI Configuration.`
+        );
+      }
+      const allRoundResponses = [];
+      const round1 = await runRound(
+        1,
+        "initial",
+        apiKeys.map((key) => ({
+          provider: key.provider,
+          rawKey: decrypt(key.encryptedKey)
+        })),
+        (provider, rawKey) => processAIMessage({
+          userId,
+          messages: [{
+            role: "user",
+            content: buildRound1Prompt(
+              question,
+              provider,
+              mode,
+              availableProviders.length
+            )
+          }],
+          mode,
+          providerOverride: provider,
+          rawKey,
+          userContext
+        })
+      );
+      allRoundResponses.push(round1);
+      if (onRoundComplete) {
+        await onRoundComplete(1, round1);
+      }
+      let round2 = [];
+      if (totalRounds >= 2) {
+        round2 = await runRound(
+          2,
+          "critique",
+          apiKeys.map((key) => ({
+            provider: key.provider,
+            rawKey: decrypt(key.encryptedKey)
+          })),
+          (provider, rawKey) => {
+            const myAnswer = round1.find(
+              (r) => r.provider === provider
+            );
+            const othersAnswers = round1.filter((r) => r.provider !== provider).map((r) => ({
+              provider: r.provider,
+              content: r.content
+            }));
+            return processAIMessage({
+              userId,
+              messages: [{
+                role: "user",
+                content: buildRound2Prompt(
+                  question,
+                  provider,
+                  myAnswer?.content || "",
+                  othersAnswers
+                )
+              }],
+              mode: "FREE_CHAT",
+              providerOverride: provider,
+              rawKey
+            });
+          }
+        );
+        allRoundResponses.push(round2);
+        if (onRoundComplete) {
+          await onRoundComplete(2, round2);
+        }
+      }
+      let round3 = [];
+      if (totalRounds >= 3) {
+        round3 = await runRound(
+          3,
+          "final",
+          apiKeys.map((key) => ({
+            provider: key.provider,
+            rawKey: decrypt(key.encryptedKey)
+          })),
+          (provider, rawKey) => {
+            const myRound1 = round1.find(
+              (r) => r.provider === provider
+            );
+            const myRound2 = round2.find(
+              (r) => r.provider === provider
+            );
+            const othersRound2 = round2.filter(
+              (r) => r.provider !== provider
+            ).map((r) => ({
+              provider: r.provider,
+              content: r.content
+            }));
+            return processAIMessage({
+              userId,
+              messages: [{
+                role: "user",
+                content: buildRound3Prompt(
+                  question,
+                  provider,
+                  myRound1?.content || "",
+                  myRound2?.content || "",
+                  othersRound2
+                )
+              }],
+              mode: "FREE_CHAT",
+              providerOverride: provider,
+              rawKey
+            });
+          }
+        );
+        allRoundResponses.push(round3);
+        if (onRoundComplete) {
+          await onRoundComplete(3, round3);
+        }
+      }
+      const lastRound = round3.length > 0 ? round3 : round2.length > 0 ? round2 : round1;
+      const allFlat = allRoundResponses.flat();
+      const primaryKey = apiKeys.find(
+        (k) => k.isPrimary
+      ) || apiKeys[0];
+      const synthesisResult = await processAIMessage({
+        userId,
+        messages: [{
+          role: "user",
+          content: buildSynthesisPrompt(
+            question,
+            allFlat,
+            availableProviders
+          )
+        }],
+        mode: "FREE_CHAT",
+        providerOverride: primaryKey.provider,
+        rawKey: decrypt(primaryKey.encryptedKey)
+      });
+      let synthesis;
+      try {
+        const match = synthesisResult.content.match(/\{[\s\S]*\}/);
+        synthesis = JSON.parse(match[0]);
+      } catch {
+        synthesis = {
+          consensus: lastRound[0]?.content || "Synthesis failed. See individual answers.",
+          executiveSummary: "See full answer above.",
+          contributions: {},
+          agreements: [],
+          debates: [],
+          keyInsights: [],
+          whatWasImproved: "",
+          confidenceScore: 70,
+          winner: null,
+          winnerReason: "",
+          warningFlags: [
+            "Synthesis parsing failed. Showing best available answer."
+          ]
+        };
+      }
+      await Promise.all(
+        apiKeys.map(
+          (key) => db_default.apiKey.update({
+            where: { id: key.id },
+            data: {
+              totalRequests: {
+                increment: totalRounds + 1
+              },
+              lastUsedAt: /* @__PURE__ */ new Date()
+            }
+          })
+        )
+      );
+      return {
+        rounds: allRoundResponses,
+        synthesis,
+        providers: availableProviders,
+        totalRounds: allRoundResponses.length
+      };
+    };
+    runRound = async (roundNumber, role, participants, callAI2) => {
+      const results = await Promise.allSettled(
+        participants.map(async (p) => {
+          try {
+            const result = await callAI2(
+              p.provider,
+              p.rawKey
+            );
+            return {
+              provider: p.provider,
+              model: result.model || p.provider,
+              content: result.content,
+              round: roundNumber,
+              role,
+              tokensUsed: result.tokens?.total || 0
+            };
+          } catch (err) {
+            return {
+              provider: p.provider,
+              model: p.provider,
+              content: `[${p.provider} failed in Round ${roundNumber}: ${err.message}]`,
+              round: roundNumber,
+              role,
+              tokensUsed: 0
+            };
+          }
+        })
+      );
+      return results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+    };
+  }
+});
+
+// src/controllers/debate.controller.ts
+var startDebate, getDebateSession, streamDebate;
+var init_debate_controller = __esm({
+  "src/controllers/debate.controller.ts"() {
+    init_db();
+    init_asyncHandler();
+    init_apiResponse();
+    init_debate_service();
+    startDebate = asyncHandler(async (req, res) => {
+      const {
+        chatId,
+        question,
+        providers,
+        rounds = 2,
+        mode = "FREE_CHAT"
+      } = req.body;
+      const userId = req.user.id;
+      if (!question?.trim()) {
+        throw new ApiError(400, "Question is required");
+      }
+      if (!providers || providers.length < 2) {
+        throw new ApiError(400, "Select at least 2 AI providers");
+      }
+      if (providers.length > 4) {
+        throw new ApiError(400, "Maximum 4 providers per debate");
+      }
+      if (rounds < 1 || rounds > 3) {
+        throw new ApiError(400, "Rounds must be 1, 2, or 3");
+      }
+      const chat = await db_default.chat.findFirst({
+        where: { id: chatId, userId }
+      });
+      if (!chat) {
+        throw new ApiError(404, "Chat not found");
+      }
+      const user = await db_default.user.findUnique({
+        where: { id: userId },
+        select: {
+          firstName: true,
+          level: true,
+          goal: true,
+          topics: true,
+          language: true
+        }
+      });
+      const debateSession = await db_default.debateSession.create({
+        data: {
+          userId,
+          chatId,
+          question,
+          mode,
+          providers,
+          totalRounds: rounds,
+          status: "IN_PROGRESS"
+        }
+      });
+      const userMessage = await db_default.message.create({
+        data: {
+          chatId,
+          userId,
+          role: "USER",
+          content: question
+        }
+      });
+      try {
+        const result = await runDebate({
+          userId,
+          question,
+          providers,
+          mode,
+          totalRounds: rounds,
+          userContext: {
+            name: user?.firstName,
+            level: user?.level,
+            goal: user?.goal,
+            topics: user?.topics,
+            language: user?.language
+          },
+          onRoundComplete: async (round, responses) => {
+            const roundData = JSON.stringify(responses);
+            await db_default.debateSession.update({
+              where: { id: debateSession.id },
+              data: {
+                [`round${round}Data`]: roundData
+              }
+            });
+          }
+        });
+        await db_default.debateSession.update({
+          where: { id: debateSession.id },
+          data: {
+            status: "COMPLETED",
+            consensusData: JSON.stringify(result.synthesis),
+            confidenceScore: result.synthesis.confidenceScore,
+            winner: result.synthesis.winner,
+            completedAt: /* @__PURE__ */ new Date()
+          }
+        });
+        const debateMessage = await db_default.message.create({
+          data: {
+            chatId,
+            userId,
+            role: "ASSISTANT",
+            content: result.synthesis.consensus,
+            messageType: "DEBATE",
+            debateData: JSON.stringify({
+              sessionId: debateSession.id,
+              rounds: result.rounds,
+              synthesis: result.synthesis,
+              providers: result.providers,
+              totalRounds: result.totalRounds,
+              question
+            })
+          }
+        });
+        await db_default.chat.update({
+          where: { id: chatId },
+          data: {
+            lastMessage: `[Debate] ${result.synthesis.consensus.slice(0, 100)}`,
+            lastMessageAt: /* @__PURE__ */ new Date(),
+            messageCount: { increment: 2 }
+          }
+        });
+        return res.status(200).json(
+          ApiResponse.success({
+            userMessage,
+            debateMessage,
+            debate: {
+              sessionId: debateSession.id,
+              rounds: result.rounds,
+              synthesis: result.synthesis,
+              providers: result.providers,
+              totalRounds: result.totalRounds
+            }
+          })
+        );
+      } catch (err) {
+        await db_default.debateSession.update({
+          where: { id: debateSession.id },
+          data: { status: "FAILED" }
+        });
+        throw err;
+      }
+    });
+    getDebateSession = asyncHandler(async (req, res) => {
+      const { sessionId } = req.params;
+      const userId = req.user.id;
+      const session = await db_default.debateSession.findFirst({
+        where: { id: sessionId, userId }
+      });
+      if (!session) {
+        throw new ApiError(404, "Debate session not found");
+      }
+      return res.status(200).json(
+        ApiResponse.success({
+          ...session,
+          round1: session.round1Data ? JSON.parse(session.round1Data) : null,
+          round2: session.round2Data ? JSON.parse(session.round2Data) : null,
+          round3: session.round3Data ? JSON.parse(session.round3Data) : null,
+          consensus: session.consensusData ? JSON.parse(session.consensusData) : null
+        })
+      );
+    });
+    streamDebate = asyncHandler(async (req, res) => {
+      const {
+        chatId,
+        question,
+        providers,
+        rounds = 2,
+        mode = "FREE_CHAT"
+      } = req.body;
+      const userId = req.user.id;
+      if (!question?.trim()) {
+        throw new ApiError(400, "Question is required");
+      }
+      if (!providers || providers.length < 2) {
+        throw new ApiError(400, "Select at least 2 AI providers");
+      }
+      if (providers.length > 4) {
+        throw new ApiError(400, "Maximum 4 providers per debate");
+      }
+      if (rounds < 1 || rounds > 3) {
+        throw new ApiError(400, "Rounds must be 1, 2, or 3");
+      }
+      const chat = await db_default.chat.findFirst({
+        where: { id: chatId, userId }
+      });
+      if (!chat) {
+        throw new ApiError(404, "Chat not found");
+      }
+      const user = await db_default.user.findUnique({
+        where: { id: userId },
+        select: {
+          firstName: true,
+          level: true,
+          goal: true,
+          topics: true,
+          language: true
+        }
+      });
+      const debateSession = await db_default.debateSession.create({
+        data: {
+          userId,
+          chatId,
+          question,
+          mode,
+          providers,
+          totalRounds: rounds,
+          status: "IN_PROGRESS"
+        }
+      });
+      await db_default.message.create({
+        data: {
+          chatId,
+          userId,
+          role: "USER",
+          content: question
+        }
+      });
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+      const send = (data) => {
+        res.write(`data: ${JSON.stringify(data)}
+
+`);
+      };
+      try {
+        send({
+          type: "DEBATE_STARTED",
+          message: "Debate is starting...",
+          providers,
+          totalRounds: rounds
+        });
+        const result = await runDebate({
+          userId,
+          question,
+          providers,
+          mode,
+          totalRounds: rounds,
+          userContext: {
+            name: user?.firstName,
+            level: user?.level,
+            goal: user?.goal,
+            topics: user?.topics,
+            language: user?.language
+          },
+          onRoundComplete: async (round, responses) => {
+            const roundData = JSON.stringify(responses);
+            await db_default.debateSession.update({
+              where: { id: debateSession.id },
+              data: {
+                [`round${round}Data`]: roundData
+              }
+            });
+            send({
+              type: "ROUND_COMPLETE",
+              round,
+              responses: responses.map((r) => ({
+                provider: r.provider,
+                content: r.content,
+                role: r.role
+              })),
+              message: `Round ${round} complete. ${rounds - round} round(s) remaining...`
+            });
+          }
+        });
+        await db_default.debateSession.update({
+          where: { id: debateSession.id },
+          data: {
+            status: "COMPLETED",
+            consensusData: JSON.stringify(result.synthesis),
+            confidenceScore: result.synthesis.confidenceScore,
+            winner: result.synthesis.winner,
+            completedAt: /* @__PURE__ */ new Date()
+          }
+        });
+        await db_default.message.create({
+          data: {
+            chatId,
+            userId,
+            role: "ASSISTANT",
+            content: result.synthesis.consensus,
+            messageType: "DEBATE",
+            debateData: JSON.stringify({
+              sessionId: debateSession.id,
+              rounds: result.rounds,
+              synthesis: result.synthesis,
+              providers: result.providers,
+              totalRounds: result.totalRounds,
+              question
+            })
+          }
+        });
+        await db_default.chat.update({
+          where: { id: chatId },
+          data: {
+            lastMessage: `[Debate] ${result.synthesis.consensus.slice(0, 100)}`,
+            lastMessageAt: /* @__PURE__ */ new Date(),
+            messageCount: { increment: 2 }
+          }
+        });
+        send({
+          type: "SYNTHESIS_COMPLETE",
+          synthesis: result.synthesis,
+          rounds: result.rounds,
+          providers: result.providers
+        });
+        send({ type: "DEBATE_DONE", done: true });
+        res.end();
+      } catch (err) {
+        await db_default.debateSession.update({
+          where: { id: debateSession.id },
+          data: { status: "FAILED" }
+        });
+        send({
+          type: "ERROR",
+          error: err.message || "Debate failed"
+        });
+        res.end();
+      }
+    });
+  }
+});
+
+// src/routes/debate.routes.ts
+import { Router as Router18 } from "express";
+var router18, debate_routes_default;
+var init_debate_routes = __esm({
+  "src/routes/debate.routes.ts"() {
+    init_auth_middleware();
+    init_debate_controller();
+    router18 = Router18();
+    router18.use(authenticate);
+    router18.post("/start", startDebate);
+    router18.post("/stream", streamDebate);
+    router18.get("/:sessionId", getDebateSession);
+    debate_routes_default = router18;
+  }
+});
+
 // server/routes/chat.ts
 var handleChat;
 var init_chat = __esm({
@@ -5392,6 +6202,7 @@ var init_app = __esm({
     init_profile_routes();
     init_projectBuilder_routes();
     init_voice_routes();
+    init_debate_routes();
     init_chat();
     init_db();
     init_passport();
@@ -5446,6 +6257,7 @@ var init_app = __esm({
     app.use("/api/profile", profile_routes_default);
     app.use("/api/project-builder", projectBuilder_routes_default);
     app.use("/api/voice", voice_routes_default);
+    app.use("/api/debate", debate_routes_default);
     app.use(notFound);
     app.use(errorHandler);
     app_default = app;

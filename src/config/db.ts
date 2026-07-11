@@ -11,8 +11,7 @@ export const prisma = global.prisma || new PrismaClient({
     : ['error'],
 });
 
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
-}
+// Always store globally to reuse connection pool in serverless environments
+global.prisma = prisma;
 
 export default prisma;
