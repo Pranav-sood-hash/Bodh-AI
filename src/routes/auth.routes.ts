@@ -44,20 +44,20 @@ router.get(
   '/google/callback',
   passport.authenticate('google', {
     session: false,
-    failureRedirect: `${process.env.CLIENT_URL}/login?error=google_auth_failed`
+    failureRedirect: `${process.env.CLIENT_URL || 'http://localhost:8080'}/login?error=google_auth_failed`
   }),
   async (req, res) => {
     try {
       const user = req.user as any;
 
       const accessToken = jwt.sign(
-        { id: user.id, email: user.email },
+        { userId: user.id, email: user.email },
         process.env.JWT_ACCESS_SECRET!,
         { expiresIn: '15m' }
       );
 
       const refreshToken = jwt.sign(
-        { id: user.id },
+        { userId: user.id },
         process.env.JWT_REFRESH_SECRET!,
         { expiresIn: '7d' }
       );
@@ -80,14 +80,14 @@ router.get(
         }
       });
 
-      const redirectUrl = new URL(`${process.env.CLIENT_URL}/auth/callback`);
+      const redirectUrl = new URL(`${process.env.CLIENT_URL || 'http://localhost:8080'}/auth/callback`);
       redirectUrl.searchParams.set('accessToken', accessToken);
       redirectUrl.searchParams.set('refreshToken', refreshToken);
       redirectUrl.searchParams.set('onboarding', user.onboardingDone ? 'false' : 'true');
 
       res.redirect(redirectUrl.toString());
     } catch (err) {
-      res.redirect(`${process.env.CLIENT_URL}/login?error=auth_callback_failed`);
+      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:8080'}/login?error=auth_callback_failed`);
     }
   }
 );
