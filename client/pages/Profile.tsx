@@ -47,8 +47,8 @@ export default function Profile() {
 
   const fetchProfileData = async () => {
     try {
-      // Parallel loading from real API routes using configured api instance
-      const [profileRes, statsRes, progressRes, roadmapRes, projectsRes, progressStatsRes] = await Promise.all([
+      // Parallel loading from real API routes using Promise.allSettled for maximum resilience
+      const results = await Promise.allSettled([
         api.get("/user/profile"),
         api.get("/user/stats"),
         api.get("/progress"),
@@ -57,15 +57,87 @@ export default function Profile() {
         api.get("/progress/stats").catch(() => ({ data: { data: { mastery: [], achievements: [] } } }))
       ]);
 
-      setProfile(profileRes.data.data);
-      setStats(statsRes.data.data);
-      setActivity(progressRes.data.data);
-      setRoadmap(roadmapRes.data.data);
-      setProjects(projectsRes.data.data.projects || projectsRes.data.data);
+      const [profileRes, statsRes, progressRes, roadmapRes, projectsRes, progressStatsRes] = results;
 
-      const statsData = progressStatsRes.data?.data || {};
-      setMastery(statsData.mastery || []);
-      setAchievements(statsData.achievements || []);
+      if (profileRes.status === "fulfilled") {
+        const rawProfile = profileRes.value.data.data;
+        let joinedDate = "Oct 2023";
+        if (rawProfile?.createdAt) {
+          try {
+            const d = new Date(rawProfile.createdAt);
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            joinedDate = `${months[d.getMonth()]} ${d.getFullYear()}`;
+          } catch (e) {
+            console.warn(e);
+          }
+        }
+        const mappedProfile = rawProfile ? {
+          ...rawProfile,
+          avatarUrl: rawProfile.avatar || "",
+          learningGoal: rawProfile.goal || "",
+          skillLevel: rawProfile.level ? rawProfile.level.charAt(0).toUpperCase() + rawProfile.level.slice(1) : "",
+          topicsOfInterest: rawProfile.topics || [],
+          joinedDate
+        } : null;
+        setProfile(mappedProfile);
+      } else {
+        console.error("Failed to load user profile:", profileRes.reason);
+      }
+
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value.data.data);
+      } else {
+        console.error("Failed to load stats:", statsRes.reason);
+      }
+
+      if (progressRes.status === "fulfilled") {
+        setActivity(progressRes.value.data.data);
+      } else {
+        console.error("Failed to load activity/progress logs:", progressRes.reason);
+      }
+
+      if (roadmapRes.status === "fulfilled" && roadmapRes.value.data.data) {
+        const rm = roadmapRes.value.data.data;
+        const milestones = (rm.milestones || []).map((m: any) => ({
+          ...m,
+          status: m.status ? m.status.toLowerCase() : "upcoming",
+          ...(m.status?.toLowerCase() === "in_progress" && { status: "active" }),
+          ...(m.status?.toLowerCase() === "locked" && { status: "upcoming" })
+        }));
+        setRoadmap({
+          ...rm,
+          progress: rm.progress !== undefined ? rm.progress : (rm.overallProgress ?? 0),
+          milestones
+        });
+      } else if (roadmapRes.status === "rejected") {
+        console.error("Failed to load active roadmap:", roadmapRes.reason);
+      }
+
+      if (projectsRes.status === "fulfilled") {
+        const rawProjects = projectsRes.value.data.data?.projects || projectsRes.value.data.data || [];
+        const mappedProjects = rawProjects.map((p: any) => ({
+          ...p,
+          image: p.coverImage || p.image,
+          title: p.name || p.title,
+          tech: p.techStack || p.tech || [],
+          status: p.status === 'COMPLETED' ? 'Completed' :
+                  p.status === 'IN_PROGRESS' ? 'In Progress' :
+                  p.status === 'PLANNING' ? 'Planning' :
+                  p.status === 'IN_REVIEW' ? 'In Review' : (p.status || 'Planning')
+        }));
+        setProjects(mappedProjects);
+      } else {
+        console.error("Failed to load projects:", projectsRes.reason);
+      }
+
+      if (progressStatsRes.status === "fulfilled") {
+        const statsData = progressStatsRes.value.data?.data || {};
+        setMastery(statsData.mastery || []);
+        setAchievements(statsData.achievements || []);
+      } else {
+        console.error("Failed to load progress stats:", progressStatsRes.reason);
+      }
+
     } catch (err) {
       console.error("Error loading profile details", err);
     } finally {
@@ -79,8 +151,37 @@ export default function Profile() {
 
   const handleSaveProfile = async (updatedData: any) => {
     try {
-      const { data } = await api.put("/user/profile", updatedData);
-      setProfile(data.data);
+      const apiPayload = {
+        firstName: updatedData.firstName,
+        lastName: updatedData.lastName,
+        location: updatedData.location,
+        bio: updatedData.bio,
+        goal: updatedData.learningGoal,
+        level: updatedData.skillLevel?.toLowerCase(),
+        topics: updatedData.topicsOfInterest,
+        avatar: updatedData.avatarUrl
+      };
+      const { data } = await api.put("/user/profile", apiPayload);
+      const updatedUser = data.data;
+
+      let joinedDate = 'Oct 2023';
+      if (updatedUser.createdAt) {
+        try {
+          const d = new Date(updatedUser.createdAt);
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          joinedDate = `${months[d.getMonth()]} ${d.getFullYear()}`;
+        } catch (e) {}
+      }
+
+      const mappedProfile = {
+        ...updatedUser,
+        avatarUrl: updatedUser.avatar || '',
+        learningGoal: updatedUser.goal || '',
+        skillLevel: updatedUser.level ? updatedUser.level.charAt(0).toUpperCase() + updatedUser.level.slice(1) : '',
+        topicsOfInterest: updatedUser.topics || [],
+        joinedDate
+      };
+      setProfile(mappedProfile);
     } catch (err) {
       throw new Error("Failed to save profile changes");
     }

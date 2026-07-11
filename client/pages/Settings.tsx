@@ -68,7 +68,7 @@ export default function Settings() {
         const token = localStorage.getItem('accessToken');
         if (!token) { navigate('/login'); return; }
 
-        const [profRes, stRes, rmRes, projRes, setRes] = await Promise.all([
+        const results = await Promise.allSettled([
           api.get('/user/profile'),
           api.get('/user/stats'),
           api.get('/roadmap'),
@@ -76,28 +76,96 @@ export default function Settings() {
           api.get('/settings')
         ]);
 
-        setProfile(profRes.data.data);
-        setStats(stRes.data.data);
-        setRoadmap(rmRes.data.data);
-        setProjects(projRes.data.data?.projects || projRes.data.data || []);
-        
-        // Populate settings state
-        const s = setRes.data.data || {};
-        const getLanguageCode = (val: string): string => {
-          if (!val) return 'en';
-          const clean = val.trim().toLowerCase();
-          const matched = SUPPORTED_LANGUAGES.find(
-            l => l.code === clean || l.name.toLowerCase() === clean || l.nativeName.toLowerCase() === clean
-          );
-          return matched ? matched.code : 'en';
-        };
-        setDisplayLanguage(getLanguageCode(s.language || 'en'));
-        setAiResponseMode(s.aiResponseLang || 'Auto-detect');
-        setTimezone(s.timezone || '(UTC+5:30) Chennai, Kolkata, Mumbai, New Delhi');
-        setDateFormat(s.dateFormat || 'DD/MM/YYYY');
-        setMasterVoiceControl(s.voiceEnabled ?? true);
-        setSelectedVoice(s.selectedVoice || 'Aria');
-        setAutoReadResponses(s.autoPlayVoice ?? false);
+        const [profRes, stRes, rmRes, projRes, setRes] = results;
+
+        if (profRes.status === 'fulfilled') {
+          const rawProfile = profRes.value.data.data;
+          
+          let joinedDate = 'Oct 2023';
+          if (rawProfile?.createdAt) {
+            try {
+              const d = new Date(rawProfile.createdAt);
+              const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              joinedDate = `${months[d.getMonth()]} ${d.getFullYear()}`;
+            } catch (e) {
+              console.warn(e);
+            }
+          }
+
+          const mappedProfile = rawProfile ? {
+            ...rawProfile,
+            avatarUrl: rawProfile.avatar || '',
+            learningGoal: rawProfile.goal || '',
+            skillLevel: rawProfile.level ? rawProfile.level.charAt(0).toUpperCase() + rawProfile.level.slice(1) : '',
+            topicsOfInterest: rawProfile.topics || [],
+            joinedDate
+          } : null;
+
+          setProfile(mappedProfile);
+        } else {
+          console.error('Failed to load user profile:', profRes.reason);
+        }
+
+        if (stRes.status === 'fulfilled') {
+          setStats(stRes.value.data.data);
+        } else {
+          console.error('Failed to load user stats:', stRes.reason);
+        }
+
+        if (rmRes.status === 'fulfilled' && rmRes.value.data.data) {
+          const rm = rmRes.value.data.data;
+          const milestones = (rm.milestones || []).map((m: any) => ({
+            ...m,
+            status: m.status ? m.status.toLowerCase() : 'upcoming',
+            ...(m.status?.toLowerCase() === 'in_progress' && { status: 'active' }),
+            ...(m.status?.toLowerCase() === 'locked' && { status: 'upcoming' })
+          }));
+          setRoadmap({
+            ...rm,
+            progress: rm.progress !== undefined ? rm.progress : (rm.overallProgress ?? 0),
+            milestones
+          });
+        } else if (rmRes.status === 'rejected') {
+          console.error('Failed to load roadmap:', rmRes.reason);
+        }
+
+        if (projRes.status === 'fulfilled') {
+          const rawProjects = projRes.value.data.data?.projects || projRes.value.data.data || [];
+          const mappedProjects = rawProjects.map((p: any) => ({
+            ...p,
+            image: p.coverImage || p.image,
+            title: p.name || p.title,
+            tech: p.techStack || p.tech || [],
+            status: p.status === 'COMPLETED' ? 'Completed' :
+                    p.status === 'IN_PROGRESS' ? 'In Progress' :
+                    p.status === 'PLANNING' ? 'Planning' :
+                    p.status === 'IN_REVIEW' ? 'In Review' : (p.status || 'Planning')
+          }));
+          setProjects(mappedProjects);
+        } else {
+          console.error('Failed to load projects:', projRes.reason);
+        }
+
+        if (setRes.status === 'fulfilled') {
+          const s = setRes.value.data.data || {};
+          const getLanguageCode = (val: string): string => {
+            if (!val) return 'en';
+            const clean = val.trim().toLowerCase();
+            const matched = SUPPORTED_LANGUAGES.find(
+              l => l.code === clean || l.name.toLowerCase() === clean || l.nativeName.toLowerCase() === clean
+            );
+            return matched ? matched.code : 'en';
+          };
+          setDisplayLanguage(getLanguageCode(s.language || 'en'));
+          setAiResponseMode(s.aiResponseLang || 'Auto-detect');
+          setTimezone(s.timezone || '(UTC+5:30) Chennai, Kolkata, Mumbai, New Delhi');
+          setDateFormat(s.dateFormat || 'DD/MM/YYYY');
+          setMasterVoiceControl(s.voiceEnabled ?? true);
+          setSelectedVoice(s.selectedVoice || 'Aria');
+          setAutoReadResponses(s.autoPlayVoice ?? false);
+        } else {
+          console.error('Failed to load settings:', setRes.reason);
+        }
         
       } catch (err) {
         console.error('Failed to load settings data', err);
@@ -114,14 +182,44 @@ export default function Settings() {
   };
 
   const handleSaveProfile = async (data: any) => {
+    const apiPayload = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      location: data.location,
+      bio: data.bio,
+      goal: data.learningGoal,
+      level: data.skillLevel?.toLowerCase(),
+      topics: data.topicsOfInterest,
+      avatar: data.avatarUrl
+    };
+
     const res = await fetch('/api/user/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(apiPayload),
     });
     if (res.ok) {
       const json = await res.json();
-      setProfile(json.profile || json);
+      const updatedUser = json.data || json.profile || json;
+      
+      let joinedDate = 'Oct 2023';
+      if (updatedUser.createdAt) {
+        try {
+          const d = new Date(updatedUser.createdAt);
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          joinedDate = `${months[d.getMonth()]} ${d.getFullYear()}`;
+        } catch (e) {}
+      }
+
+      const mappedProfile = {
+        ...updatedUser,
+        avatarUrl: updatedUser.avatar || '',
+        learningGoal: updatedUser.goal || '',
+        skillLevel: updatedUser.level ? updatedUser.level.charAt(0).toUpperCase() + updatedUser.level.slice(1) : '',
+        topicsOfInterest: updatedUser.topics || [],
+        joinedDate
+      };
+      setProfile(mappedProfile);
     } else throw new Error('Failed to save');
   };
 

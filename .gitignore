@@ -29,3 +29,10 @@ dist-ssr
 .vercel
 .env.vercel*
 
+# Local Agent Workspace and Scratch Files
+.agents/
+_agents/
+scratch/
+get_latest_message.ts
+list_all_chats.ts
+

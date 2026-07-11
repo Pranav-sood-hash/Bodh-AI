@@ -21,3 +21,8 @@ if (typeof global !== 'undefined') {
     (global as any).Path2D = class Path2D {};
   }
 }
+
+// Polyfill BigInt serialization to prevent JSON.stringify errors
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};

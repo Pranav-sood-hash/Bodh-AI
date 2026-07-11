@@ -3,11 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useChat } from '@/context/ChatContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useProfile } from '@/hooks/useProfile';
+import useApiKeys from '@/hooks/useApiKeys';
+import { useDebate } from '@/hooks/useDebate';
 import Sidebar from '@/components/Sidebar';
 import MobileTopBar from '@/components/MobileTopBar';
 import CodePlayground from '@/components/chat/CodePlayground';
 import CompareView from '@/components/chat/CompareView';
 import VoiceChatOverlay from '@/components/chat/VoiceChatOverlay';
+import DebateSetupModal from '@/components/debate/DebateSetupModal';
+import DebateProgress from '@/components/debate/DebateProgress';
+import DebateResult from '@/components/debate/DebateResult';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -25,9 +30,15 @@ import {
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { chats, activeChatId, setActiveChatId, sendMessage, deleteChat } = useChat();
+  const { chats, activeChatId, setActiveChatId, sendMessage, deleteChat, refreshMessages } = useChat();
   const { settings } = useSettings();
   const { profile } = useProfile();
+  const { keys } = useApiKeys();
+  const { status, statusMessage, currentRound, rounds, progress, isDebating, startDebate, reset } = useDebate();
+
+  const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
+  const [debateRounds, setDebateRounds] = useState(2);
+  const [debateProviders, setDebateProviders] = useState<string[]>([]);
 
   const [input, setInput] = useState('');
   const [isDictating, setIsDictating] = useState(false);
@@ -37,6 +48,29 @@ export default function Chat() {
 
   // Determine chat session details
   const chatSession = chats.find((c) => c.id === id) || chats.find((c) => c.id === activeChatId) || null;
+
+  const connectedProviders = keys.filter(k => k.isActive).map(k => k.provider);
+
+  const handleStartDebate = async (params: { providers: string[]; rounds: number; mode: string; question: string }) => {
+    setIsSetupModalOpen(false);
+    setDebateRounds(params.rounds);
+    setDebateProviders(params.providers);
+
+    const questionText = params.question.trim();
+    setInput('');
+
+    if (chatSession) {
+      await startDebate({
+        chatId: chatSession.id,
+        question: questionText,
+        providers: params.providers,
+        totalRounds: params.rounds,
+        mode: params.mode
+      });
+      await refreshMessages(chatSession.id);
+      reset();
+    }
+  };
 
   // Auto-open voice overlay for brand new speech mode sessions
   useEffect(() => {
@@ -200,11 +234,19 @@ export default function Chat() {
                     className={`rounded-2xl p-4 text-xs font-medium leading-relaxed ${
                       isUser
                         ? 'bg-blue-50 border border-blue-200 text-blue-900 ml-auto max-w-lg shadow-sm'
+                        : msg.messageType === 'DEBATE'
+                        ? 'bg-white border border-slate-200/80 text-slate-700 mr-auto shadow-sm w-full'
                         : 'bg-white border border-slate-200/80 text-slate-700 mr-auto shadow-sm'
                     }`}
                   >
                     {isUser ? (
                       <p className="whitespace-pre-wrap">{msg.text}</p>
+                    ) : msg.messageType === 'DEBATE' && msg.debateData ? (
+                      <DebateResult
+                        synthesis={JSON.parse(msg.debateData).synthesis}
+                        rounds={JSON.parse(msg.debateData).rounds}
+                        providers={JSON.parse(msg.debateData).providers}
+                      />
                     ) : (
                       <div className="prose prose-sm prose-slate max-w-none text-xs [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[11px] [&_code]:font-mono [&_pre]:bg-slate-900 [&_pre]:text-slate-100 [&_pre]:rounded-xl [&_pre]:p-4 [&_pre]:overflow-x-auto [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_h4]:text-xs [&_strong]:text-slate-800">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>
@@ -266,6 +308,18 @@ export default function Chat() {
             </div>
           )}
 
+          {isDebating && (
+            <DebateProgress
+              status={status}
+              statusMessage={statusMessage}
+              currentRound={currentRound}
+              rounds={rounds}
+              progress={progress}
+              totalRounds={debateRounds}
+              providers={debateProviders}
+            />
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -322,6 +376,20 @@ export default function Chat() {
                 {isDictating ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
 
+              <button
+                type="button"
+                onClick={() => setIsSetupModalOpen(true)}
+                disabled={connectedProviders.length < 2 || isDebating}
+                title={
+                  connectedProviders.length < 2
+                    ? 'AI Debate requires at least 2 active API keys. Configure them in Settings.'
+                    : 'Start Multi-AI Debate'
+                }
+                className="w-10 h-10 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 flex items-center justify-center shrink-0 smooth-transition disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <span className="text-base select-none">⚔️</span>
+              </button>
+
               <input
                 type="text"
                 value={input}
@@ -347,6 +415,14 @@ export default function Chat() {
         onClose={() => setIsVoiceOverlayOpen(false)}
         chatId={chatSession.id}
       />
+      {isSetupModalOpen && (
+        <DebateSetupModal
+          connectedProviders={connectedProviders}
+          initialQuestion={input}
+          onStart={handleStartDebate}
+          onClose={() => setIsSetupModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

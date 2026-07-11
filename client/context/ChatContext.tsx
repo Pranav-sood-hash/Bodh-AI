@@ -26,6 +26,8 @@ export interface Message {
   timestamp: string;
   codePlayground?: CodePlaygroundData;
   compareData?: CompareData;
+  messageType?: string;
+  debateData?: string;
 }
 
 export interface ChatSession {
@@ -46,6 +48,7 @@ interface ChatContextType {
   updateCodeOutput: (chatId: string, messageId: string, output: string) => void;
   deleteChat: (id: string) => void;
   clearAllChats: () => void;
+  refreshMessages: (chatId: string) => Promise<void>;
 }
 
 function parseCompareMarkdown(content: string): CompareData | undefined {
@@ -149,7 +152,9 @@ const mapMessage = (msg: any): Message => {
     text: msg.content,
     timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     codePlayground,
-    compareData
+    compareData,
+    messageType: msg.messageType || 'NORMAL',
+    debateData: msg.debateData
   };
 };
 
@@ -380,6 +385,18 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  const refreshMessages = async (chatId: string) => {
+    try {
+      const { data } = await api.get(`/messages/${chatId}`);
+      const mappedMessages = data.data.map(mapMessage);
+      setChats((prev) =>
+        prev.map((c) => (c.id === chatId ? { ...c, messages: mappedMessages } : c))
+      );
+    } catch (err) {
+      console.error('Failed to refresh messages:', err);
+    }
+  };
+
   return (
     <ChatContext.Provider
       value={{
@@ -391,7 +408,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sendMessage,
         updateCodeOutput,
         deleteChat,
-        clearAllChats
+        clearAllChats,
+        refreshMessages
       }}
     >
       {children}

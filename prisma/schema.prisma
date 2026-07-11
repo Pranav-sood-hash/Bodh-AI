@@ -92,6 +92,7 @@ model User {
   roomMembers      RoomMember[]
   roomMessages     RoomMessage[]
   knowledgeDocs    KnowledgeDoc[]
+  debateSessions   DebateSession[]
 
   @@map("users")
 }
@@ -220,6 +221,7 @@ model Chat {
   folder           Folder?   @relation(fields: [folderId], references: [id])
   messages         Message[]
   milestone        RoadmapMilestone? @relation(fields: [milestoneId], references: [id])
+  debateSessions   DebateSession[]
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, isPinned])
@@ -254,6 +256,11 @@ model Message {
   totalTokens      Int       @default(0)
   apiKeyId         String?
   createdAt        DateTime  @default(now())
+
+  messageType    String  @default("NORMAL")
+  // Values: NORMAL | DEBATE | COMPARE | SYSTEM
+  debateData     String? @db.Text
+  // JSON string of full debate rounds data
 
   chat             Chat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
   user             User      @relation(fields: [userId], references: [id])
@@ -675,3 +682,30 @@ model ProjectStep {
   @@index([projectId, order])
   @@map("project_steps")
 }
+
+model DebateSession {
+  id              String   @id @default(cuid())
+  userId          String
+  chatId          String
+  question        String   @db.Text
+  mode            String
+  providers       String[]
+  totalRounds     Int
+  status          String   @default("IN_PROGRESS")
+  // IN_PROGRESS | COMPLETED | FAILED
+  round1Data      String?  @db.Text
+  round2Data      String?  @db.Text
+  round3Data      String?  @db.Text
+  consensusData   String?  @db.Text
+  confidenceScore Float?
+  winner          String?
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat  Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([userId, chatId])
+  @@map("debate_sessions")
+}
+
