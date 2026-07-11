@@ -68,10 +68,6 @@ app.get('/api/health', async (req, res) => {
     gmailUserExists: !!process.env.GMAIL_USER,
     gmailAppPasswordExists: !!process.env.GMAIL_APP_PASSWORD,
     groqApiKeyExists: !!process.env.GROQ_API_KEY,
-    googleClientIdExists: !!process.env.GOOGLE_CLIENT_ID,
-    googleClientIdValue: process.env.GOOGLE_CLIENT_ID ? `${process.env.GOOGLE_CLIENT_ID.substring(0, 10)}...${process.env.GOOGLE_CLIENT_ID.substring(process.env.GOOGLE_CLIENT_ID.length - 10)}` : 'MISSING',
-    googleCallbackUrlValue: process.env.GOOGLE_CALLBACK_URL || 'MISSING',
-    clientUrlValue: process.env.CLIENT_URL || 'MISSING',
   });
 });
 
