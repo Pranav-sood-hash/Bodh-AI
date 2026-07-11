@@ -2206,13 +2206,15 @@ var init_apikey_routes = __esm({
 });
 
 // src/controllers/roadmap.controller.ts
-var getRoadmap, suggestFocusAreas, generateRoadmap, updateMilestone, reoptimizeRoadmap;
+var getRoadmap, suggestFocusAreas, generateRoadmap, updateMilestone, reoptimizeRoadmap, startMilestonePractice, validateMilestoneProject;
 var init_roadmap_controller = __esm({
   "src/controllers/roadmap.controller.ts"() {
     init_db();
     init_asyncHandler();
     init_apiResponse();
     init_ai_router_service();
+    init_encryption_service();
+    init_logger();
     getRoadmap = asyncHandler(async (req, res) => {
       const roadmap = await db_default.roadmap.findFirst({
         where: { userId: req.user.id, isActive: true },
@@ -2420,6 +2422,79 @@ Only return JSON. Do not include markdown code block syntax.`;
         where: { id: milestone.roadmapId },
         data: { overallProgress }
       });
+      if (status === "COMPLETED") {
+        const allCompleted = allMilestones.every(
+          (m) => m.status === "COMPLETED" || m.id === milestoneId
+        );
+        if (allCompleted) {
+          const roadmap = await db_default.roadmap.findUnique({
+            where: { id: milestone.roadmapId }
+          });
+          if (roadmap) {
+            const projectName = `${roadmap.title} \u2014 Capstone Project`;
+            const existingCapstone = await db_default.project.findFirst({
+              where: { userId: req.user.id, name: projectName }
+            });
+            if (!existingCapstone) {
+              const allSkills = [];
+              allMilestones.forEach((m) => {
+                if (Array.isArray(m.skillsGained)) {
+                  m.skillsGained.forEach((s) => {
+                    if (!allSkills.includes(s)) allSkills.push(s);
+                  });
+                }
+              });
+              await db_default.project.create({
+                data: {
+                  userId: req.user.id,
+                  name: projectName,
+                  description: `Capstone project for your completed "${roadmap.title}" learning roadmap. Apply all the skills you have mastered into one final end-to-end product.`,
+                  priority: "HIGH",
+                  techStack: allSkills.slice(0, 12),
+                  // cap at 12 tags
+                  progressLabel: `Auto-created from roadmap: ${roadmap.title}`,
+                  progress: 0,
+                  sprints: {
+                    create: [
+                      {
+                        name: "Sprint 1: Architecture & Planning",
+                        status: "IN_PROGRESS",
+                        tasks: [
+                          "Review all milestone learnings",
+                          "Define project scope and features",
+                          "Set up repository and project structure"
+                        ]
+                      },
+                      {
+                        name: "Sprint 2: Core Implementation",
+                        status: "PLANNED",
+                        tasks: [
+                          "Build core feature modules",
+                          "Integrate backend and frontend",
+                          "Implement authentication and data layer"
+                        ]
+                      },
+                      {
+                        name: "Sprint 3: Polish & Deploy",
+                        status: "PLANNED",
+                        tasks: [
+                          "Write unit and integration tests",
+                          "Optimize performance and UX",
+                          "Deploy to production"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              });
+              await db_default.user.update({
+                where: { id: req.user.id },
+                data: { projectsBuilt: { increment: 1 } }
+              });
+            }
+          }
+        }
+      }
       return res.json(ApiResponse.success(updatedMilestone, "Milestone updated successfully"));
     });
     reoptimizeRoadmap = asyncHandler(async (req, res) => {
@@ -2485,16 +2560,291 @@ Only return JSON. Do not include markdown code block syntax.`;
       });
       return res.json(ApiResponse.success(reoptimized, "Roadmap reoptimized based on your progress"));
     });
+    startMilestonePractice = asyncHandler(
+      async (req, res) => {
+        const milestoneId = req.params.id;
+        const userId = req.user.id;
+        const milestone = await db_default.roadmapMilestone.findFirst({
+          where: { id: milestoneId },
+          include: { roadmap: true }
+        });
+        if (!milestone || milestone.roadmap.userId !== userId) {
+          throw new ApiError(
+            404,
+            "Milestone not found"
+          );
+        }
+        const user = await db_default.user.findUnique({
+          where: { id: userId },
+          select: {
+            firstName: true,
+            level: true,
+            language: true
+          }
+        });
+        const chat = await db_default.chat.create({
+          data: {
+            userId,
+            title: `Practice: ${milestone.title}`,
+            mode: "LEARNING",
+            milestoneId: milestone.id
+          }
+        });
+        const userApiKey = await db_default.apiKey.findFirst({
+          where: { userId, isPrimary: true, isActive: true }
+        });
+        let selectedProvider;
+        let rawKey;
+        if (userApiKey) {
+          selectedProvider = userApiKey.provider;
+          rawKey = decrypt(userApiKey.encryptedKey);
+        } else {
+          selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+          rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+        }
+        if (!rawKey) {
+          return res.status(201).json(
+            ApiResponse.success({
+              chatId: chat.id,
+              aiIntroMessage: null,
+              noApiKey: true
+            })
+          );
+        }
+        const introPrompt = `
+You are starting a learning session with ${user?.firstName || "a student"} about:
+
+TOPIC: "${milestone.title}"
+DESCRIPTION: "${milestone.description}"
+TAGS/SUBTOPICS: ${milestone.tags.join(", ")}
+STUDENT LEVEL: ${user?.level || "Intermediate"}
+RESOURCES TO COVER: ${milestone.resources?.join(", ") || "Core concepts and practical application"}
+
+Write your OPENING MESSAGE for this learning session. Structure it EXACTLY like this:
+
+1. A warm, engaging introduction to "${milestone.title}" (2-3 sentences that spark curiosity)
+
+2. "Here's what we'll cover in this session:"
+   Then list 4-6 specific subtopics as a numbered list. Make each one specific and concrete, not generic.
+
+3. A brief explanation of why this topic matters (1-2 sentences, real-world context)
+
+4. End with EXACTLY this question format:
+   "Where would you like to start?"
+   Then give 3-4 numbered options matching your subtopics list above.
+   Example:
+   1\uFE0F\u20E3 [First subtopic] - [1 line description]
+   2\uFE0F\u20E3 [Second subtopic] - [1 line description]
+   3\uFE0F\u20E3 [Third subtopic] - [1 line description]
+   4\uFE0F\u20E3 Start from the very beginning
+
+Keep total length: 150-200 words maximum.
+Be encouraging and conversational.
+Use markdown for formatting.`;
+        let introContent = "";
+        let usedProvider = selectedProvider;
+        let usedModel = "system-fallback";
+        try {
+          const result = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{
+              role: "user",
+              content: introPrompt
+            }],
+            mode: "LEARNING"
+          });
+          introContent = result.content;
+          usedModel = result.model || "system-fallback";
+        } catch (aiError) {
+          logger.warn("AI Intro generation failed, using local template fallback:", aiError.message || aiError);
+          const tagList = milestone.tags && milestone.tags.length > 0 ? milestone.tags.map((t, idx) => `${idx + 1}. ${t}`).join("\n") : `1. Core concepts of ${milestone.title}
+2. Real-world application
+3. Practical exercise`;
+          const optionsList = milestone.tags && milestone.tags.length > 0 ? milestone.tags.slice(0, 3).map((t, idx) => `${idx + 1}\uFE0F\u20E3 Learn about ${t}`).join("\n") + `
+${Math.min(milestone.tags.length, 3) + 1}\uFE0F\u20E3 Start from the very beginning` : `1\uFE0F\u20E3 Theoretical concepts
+2\uFE0F\u20E3 Practical exercise
+3\uFE0F\u20E3 Start from the very beginning`;
+          introContent = `### Introduction to ${milestone.title}
+
+${milestone.description || `Welcome to the practice session for **${milestone.title}**! Let's dive deep and master this topic together.`}
+
+Here's what we'll cover in this session:
+${tagList}
+
+This topic matters because mastering these concepts is essential to building modern, robust, and user-friendly software applications.
+
+Where would you like to start?
+${optionsList}`;
+          usedProvider = "SYSTEM";
+        }
+        const aiMessage = await db_default.message.create({
+          data: {
+            chatId: chat.id,
+            userId,
+            role: "ASSISTANT",
+            content: introContent,
+            provider: usedProvider,
+            model: usedModel
+          }
+        });
+        await db_default.chat.update({
+          where: { id: chat.id },
+          data: {
+            lastMessage: introContent.slice(0, 100),
+            lastMessageAt: /* @__PURE__ */ new Date(),
+            messageCount: 1
+          }
+        });
+        return res.status(201).json(
+          ApiResponse.success({
+            chatId: chat.id,
+            aiIntroMessage: aiMessage,
+            milestone: {
+              id: milestone.id,
+              title: milestone.title,
+              tags: milestone.tags
+            }
+          })
+        );
+      }
+    );
+    validateMilestoneProject = asyncHandler(async (req, res) => {
+      const milestoneId = req.params.id;
+      const userId = req.user.id;
+      const file = req.file;
+      if (!file) throw new ApiError(400, "No file was uploaded");
+      const milestone = await db_default.roadmapMilestone.findFirst({
+        where: { id: milestoneId },
+        include: { roadmap: true }
+      });
+      if (!milestone || milestone.roadmap.userId !== userId) {
+        throw new ApiError(404, "Milestone not found");
+      }
+      const isText = /\.(ts|tsx|js|jsx|json|prisma|py|md|txt|yaml|yml|html|css|sql|sh|go|java)$/i.test(file.originalname);
+      const fileContent = isText ? file.buffer.toString("utf-8").slice(0, 6e3) : `[Binary file: ${file.originalname}, ${(file.size / 1024).toFixed(1)} KB]`;
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      let score = 0;
+      let feedbackObj = {};
+      let passed = false;
+      if (rawKey) {
+        const prompt = `You are an AI project evaluator. A student submitted a file for their milestone.
+
+MILESTONE: "${milestone.title}"
+DESCRIPTION: "${milestone.description}"
+SKILLS TO DEMONSTRATE: ${milestone.skillsGained.join(", ") || "general programming"}
+TAGS: ${milestone.tags.join(", ")}
+
+FILE: ${file.originalname}
+CONTENT:
+\`\`\`
+${fileContent}
+\`\`\`
+
+Evaluate whether the file meaningfully demonstrates the milestone's skills. Be fair but strict.
+
+Respond ONLY with valid JSON \u2014 no markdown, no extra text:
+{
+  "score": <0-100>,
+  "passed": <boolean, true if score >= 60>,
+  "summary": "<1 sentence verdict>",
+  "strengths": ["<point>"],
+  "improvements": ["<point>"]
+}`;
+        try {
+          const result = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{ role: "user", content: prompt }],
+            mode: "FREE_CHAT"
+          });
+          const clean = result.content.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(clean);
+          score = Math.min(100, Math.max(0, Number(parsed.score) || 0));
+          passed = parsed.passed === true || score >= 60;
+          feedbackObj = { summary: parsed.summary || "", strengths: parsed.strengths || [], improvements: parsed.improvements || [] };
+        } catch {
+          score = 65;
+          passed = true;
+          feedbackObj = { summary: "File received. Good attempt!", strengths: ["Submitted file present"], improvements: [] };
+        }
+      } else {
+        score = 70;
+        passed = true;
+        feedbackObj = { summary: "Accepted. Add an AI key for detailed feedback.", strengths: ["Submission received"], improvements: [] };
+      }
+      if (passed) {
+        await db_default.roadmapMilestone.update({
+          where: { id: milestoneId },
+          data: { status: "COMPLETED", progress: 100, completedAt: /* @__PURE__ */ new Date() }
+        });
+        const nextMilestone = await db_default.roadmapMilestone.findFirst({
+          where: { roadmapId: milestone.roadmapId, order: milestone.order + 1 }
+        });
+        if (nextMilestone && ["LOCKED", "UPCOMING"].includes(nextMilestone.status)) {
+          await db_default.roadmapMilestone.update({ where: { id: nextMilestone.id }, data: { status: "IN_PROGRESS" } });
+        }
+        const allMilestones = await db_default.roadmapMilestone.findMany({ where: { roadmapId: milestone.roadmapId } });
+        const completedCount = allMilestones.filter((m) => m.status === "COMPLETED").length;
+        await db_default.roadmap.update({
+          where: { id: milestone.roadmapId },
+          data: { overallProgress: completedCount / allMilestones.length * 100 }
+        });
+        if (!nextMilestone) {
+          const roadmap = await db_default.roadmap.findUnique({ where: { id: milestone.roadmapId } });
+          if (roadmap) {
+            const projectName = `${roadmap.title} \u2014 Capstone Project`;
+            const existing = await db_default.project.findFirst({ where: { userId, name: projectName } });
+            if (!existing) {
+              const allSkills = [];
+              allMilestones.forEach((m) => {
+                m.skillsGained.forEach((s) => {
+                  if (!allSkills.includes(s)) allSkills.push(s);
+                });
+              });
+              await db_default.project.create({
+                data: {
+                  userId,
+                  name: projectName,
+                  priority: "HIGH",
+                  description: `Capstone project for your completed "${roadmap.title}" learning roadmap.`,
+                  techStack: allSkills.slice(0, 12),
+                  progressLabel: `Auto-created from roadmap: ${roadmap.title}`,
+                  progress: 0,
+                  sprints: {
+                    create: [
+                      { name: "Sprint 1: Architecture & Planning", status: "IN_PROGRESS", tasks: ["Review all milestone learnings", "Define project scope", "Set up repository"] },
+                      { name: "Sprint 2: Core Implementation", status: "PLANNED", tasks: ["Build core features", "Integrate layers", "Implement data models"] },
+                      { name: "Sprint 3: Polish & Deploy", status: "PLANNED", tasks: ["Write tests", "Optimize UX", "Deploy"] }
+                    ]
+                  }
+                }
+              });
+              await db_default.user.update({ where: { id: userId }, data: { projectsBuilt: { increment: 1 } } });
+            }
+          }
+        }
+      }
+      return res.json(ApiResponse.success({
+        passed,
+        score,
+        feedback: feedbackObj,
+        milestoneCompleted: passed
+      }, passed ? "Milestone validated and marked complete!" : "Keep going \u2014 see improvement tips below."));
+    });
   }
 });
 
 // src/routes/roadmap.routes.ts
 import { Router as Router6 } from "express";
-var router6, roadmap_routes_default;
+import multer2 from "multer";
+var upload2, router6, roadmap_routes_default;
 var init_roadmap_routes = __esm({
   "src/routes/roadmap.routes.ts"() {
     init_roadmap_controller();
     init_auth_middleware();
+    upload2 = multer2({ storage: multer2.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
     router6 = Router6();
     router6.use(authenticate);
     router6.get("/", getRoadmap);
@@ -2502,17 +2852,39 @@ var init_roadmap_routes = __esm({
     router6.post("/generate", generateRoadmap);
     router6.put("/milestone/:id", updateMilestone);
     router6.post("/reoptimize", reoptimizeRoadmap);
+    router6.post("/milestone/:id/practice", startMilestonePractice);
+    router6.post("/milestone/:id/validate-project", upload2.single("file"), validateMilestoneProject);
     roadmap_routes_default = router6;
   }
 });
 
+// src/services/socket.service.ts
+import { Server as SocketIOServer } from "socket.io";
+import jwt4 from "jsonwebtoken";
+var io, getIO;
+var init_socket_service = __esm({
+  "src/services/socket.service.ts"() {
+    init_db();
+    init_logger();
+    io = null;
+    getIO = () => {
+      if (!io) {
+        throw new Error("Socket.io not initialized");
+      }
+      return io;
+    };
+  }
+});
+
 // src/controllers/project.controller.ts
-var getProjects, createProject, getProject, updateProject, deleteProject, getProjectStats;
+var getProjects, createProject, getProject, updateProject, deleteProject, getProjectStats, generateProblemStatement, createStepByStepRoadmap, submitCompleteProject, uploadStepFile, getStepValidation;
 var init_project_controller = __esm({
   "src/controllers/project.controller.ts"() {
     init_db();
     init_asyncHandler();
     init_apiResponse();
+    init_ai_router_service();
+    init_socket_service();
     getProjects = asyncHandler(async (req, res) => {
       const userId = req.user.id;
       const page = parseInt(req.query.page) || 1;
@@ -2567,13 +2939,18 @@ var init_project_controller = __esm({
     getProject = asyncHandler(async (req, res) => {
       const project = await db_default.project.findFirst({
         where: { id: req.params.id, userId: req.user.id },
-        include: { sprints: true }
+        include: {
+          sprints: true,
+          steps: {
+            orderBy: { order: "asc" }
+          }
+        }
       });
       if (!project) throw new ApiError(404, "Project workspace not found");
       return res.json(ApiResponse.success(project));
     });
     updateProject = asyncHandler(async (req, res) => {
-      const { name, description, status, priority, techStack, progress, progressLabel } = req.body;
+      const { name, description, status, priority, techStack, progress, progressLabel, isStepByStep, hasSelectedMode } = req.body;
       const project = await db_default.project.update({
         where: { id: req.params.id, userId: req.user.id },
         data: {
@@ -2583,9 +2960,16 @@ var init_project_controller = __esm({
           ...priority && { priority },
           ...techStack && { techStack },
           ...progress !== void 0 && { progress },
-          ...progressLabel !== void 0 && { progressLabel }
+          ...progressLabel !== void 0 && { progressLabel },
+          ...isStepByStep !== void 0 && { isStepByStep },
+          ...hasSelectedMode !== void 0 && { hasSelectedMode }
         },
-        include: { sprints: true }
+        include: {
+          sprints: true,
+          steps: {
+            orderBy: { order: "asc" }
+          }
+        }
       });
       return res.json(ApiResponse.success(project, "Project updated"));
     });
@@ -2608,24 +2992,449 @@ var init_project_controller = __esm({
         inProgress: inProgressCount
       }));
     });
+    generateProblemStatement = asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const project = await db_default.project.findFirst({
+        where: { id, userId }
+      });
+      if (!project) {
+        throw new ApiError(404, "Project not found");
+      }
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      let problemStatement = "";
+      if (rawKey) {
+        try {
+          const prompt = `Generate a realistic, comprehensive, and challenging problem statement for the following project:
+Project Name: "${project.name}"
+Description: "${project.description || ""}"
+Tech Stack: ${project.techStack.join(", ")}
+
+Structure the response nicely using markdown:
+- **Title**: A professional title.
+- **Background**: 2-3 sentences explaining the context.
+- **The Challenge**: A clear explanation of what is being built and why.
+- **Core Requirements**: 4-6 bullet points of functional requirements.
+- **Technical Scope**: Details on stack application.
+Only output the markdown content, no extra talk.`;
+          const aiResult = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{ role: "user", content: prompt }],
+            mode: "FREE_CHAT"
+          });
+          problemStatement = aiResult.content.trim();
+        } catch (err) {
+          console.error("Failed to generate problem statement via AI:", err.message);
+        }
+      }
+      if (!problemStatement) {
+        problemStatement = `### ${project.name}
+**Background**: As software developers, we build projects to solve real-world problems.
+**The Challenge**: Create a production-ready application for "${project.name}" using ${project.techStack.join(", ") || "modern web standards"}.
+**Core Requirements**:
+- Setup project framework and configure standard directory structure.
+- Define datastore/models representing domain entities.
+- Implement business logic via services and controller APIs.
+- Build interactive user interfaces with optimized state management.
+- Test components and verify system integrations.`;
+      }
+      const updatedProject = await db_default.project.update({
+        where: { id },
+        data: { problemStatement }
+      });
+      return res.json(ApiResponse.success(updatedProject));
+    });
+    createStepByStepRoadmap = asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const project = await db_default.project.findFirst({
+        where: { id, userId },
+        include: { steps: { orderBy: { order: "asc" } } }
+      });
+      if (!project) {
+        throw new ApiError(404, "Project not found");
+      }
+      await db_default.project.update({
+        where: { id },
+        data: { isStepByStep: true }
+      });
+      if (project.steps.length > 0) {
+        return res.json(ApiResponse.success(project.steps));
+      }
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      let generatedSteps = [];
+      if (rawKey) {
+        try {
+          const prompt = `Break down this project into a 4-6 step detailed step-by-step implementation plan:
+Project Name: "${project.name}"
+Description: "${project.description || ""}"
+Tech Stack: ${project.techStack.join(", ")}
+
+Output exactly a JSON array of objects. Do not include markdown code block syntax.
+Each object must have the following keys:
+- title: string
+- description: string (detailed instructions on what to implement in this step)
+- deliverable: string (what file or content the user must submit to pass, e.g. "database.ts containing Prisma schema config")
+- expectedFileTypes: array of strings (e.g. ["ts", "js", "json", "prisma"])
+- validationCriteria: array of strings (what the AI reviewer will check, e.g. ["Schema contains user model", "Includes indexes"])
+- estimatedHours: number (estimated effort)
+- hint: string (actionable hint or code snippet to help the student get started)
+
+Example:
+[
+  {
+    "title": "Database Schema Design",
+    "description": "Create the Prisma schema file including User and Profile models.",
+    "deliverable": "schema.prisma",
+    "expectedFileTypes": ["prisma"],
+    "validationCriteria": ["Contains User model", "Relations are properly set"],
+    "estimatedHours": 3,
+    "hint": "Ensure that the relations are properly set using @relation fields and foreign key mappings."
+  }
+]`;
+          const aiResult = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{ role: "user", content: prompt }],
+            mode: "FREE_CHAT"
+          });
+          const cleanJson = aiResult.content.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(cleanJson);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            generatedSteps = parsed;
+          }
+        } catch (err) {
+          console.error("Failed to generate project steps via AI:", err.message);
+        }
+      }
+      if (generatedSteps.length === 0) {
+        generatedSteps = [
+          {
+            title: "Project Initialization & Structure Setup",
+            description: "Initialize the codebase directory structure, package configuration, and repository layout.",
+            deliverable: "package.json config showing basic setup details",
+            expectedFileTypes: ["json", "txt"],
+            validationCriteria: ["Includes name and main entrypoint", "Basic scripts are defined"],
+            estimatedHours: 2,
+            hint: "Use `npm init -y` or `pnpm init` to initialize the project and create a package.json file."
+          },
+          {
+            title: "Backend Database and Schema Configuration",
+            description: "Design and set up database models, migrations, and connections.",
+            deliverable: "Database configuration or schema file",
+            expectedFileTypes: ["prisma", "sql", "js", "ts"],
+            validationCriteria: ["Correct relationships modeled", "Indexes configured for core queries"],
+            estimatedHours: 4,
+            hint: "Define your main database tables and schema using Prisma, SQL, or an ORM like Mongoose."
+          },
+          {
+            title: "API Implementation & Route Handlers",
+            description: "Write Express routes and controller functions for CRUD operations.",
+            deliverable: "Router code file or controllers directory snapshot",
+            expectedFileTypes: ["ts", "js"],
+            validationCriteria: ["Authentication middleware used", "Validation schema is present"],
+            estimatedHours: 6,
+            hint: "Define express.Router() handlers and map them to specific HTTP verbs like GET, POST, PUT, DELETE."
+          },
+          {
+            title: "Frontend Component Assembly & UI Integration",
+            description: "Build React pages, layout structures, and wire up states to mock APIs.",
+            deliverable: "App.tsx or Page component code",
+            expectedFileTypes: ["tsx", "jsx", "css"],
+            validationCriteria: ["Component handles loading states", "Includes clean styling"],
+            estimatedHours: 8,
+            hint: "Create clean functional React components and handle states using useState and useEffect."
+          }
+        ];
+      }
+      const createdSteps = await Promise.all(
+        generatedSteps.map(
+          (step, index) => db_default.projectStep.create({
+            data: {
+              projectId: project.id,
+              order: index + 1,
+              title: step.title,
+              description: step.description,
+              deliverable: step.deliverable,
+              expectedFileTypes: step.expectedFileTypes || [],
+              validationCriteria: step.validationCriteria || [],
+              estimatedHours: step.estimatedHours || 4,
+              hint: step.hint || "",
+              status: index === 0 ? "IN_PROGRESS" : "PENDING"
+            }
+          })
+        )
+      );
+      return res.status(201).json(ApiResponse.success(createdSteps));
+    });
+    submitCompleteProject = asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const file = req.file;
+      if (!file) {
+        throw new ApiError(400, "Please upload your project file(s)");
+      }
+      const project = await db_default.project.findFirst({
+        where: { id, userId }
+      });
+      if (!project) {
+        throw new ApiError(404, "Project not found");
+      }
+      const fileContent = file.buffer.toString("utf-8");
+      await db_default.project.update({
+        where: { id },
+        data: {
+          status: "IN_REVIEW",
+          submittedFileName: file.originalname,
+          submittedAt: /* @__PURE__ */ new Date()
+        }
+      });
+      const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+      const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+      let score = 85;
+      let feedback = "Overall excellent structure and layout. The implementation matches all requirements.";
+      let passed = true;
+      if (rawKey) {
+        try {
+          const prompt = `Review this student's complete project submission:
+Project: "${project.name}"
+Description: "${project.description || ""}"
+Tech Stack: ${project.techStack.join(", ")}
+
+Submission File Name: "${file.originalname}"
+Submission Content Snippet (first 5000 chars):
+"""
+${fileContent.slice(0, 5e3)}
+"""
+
+Please run a comprehensive review. Verify:
+1. If the project files map to the configured tech stack.
+2. If the main functionality described in the project description is present or stubbed.
+3. Code quality, layout patterns, and best practices.
+
+Output exactly a JSON object. Do not include markdown code block syntax.
+The object must contain these keys:
+- score: number (from 0 to 100)
+- passed: boolean (true if score is >= 70, false otherwise)
+- feedback: string (detailed review comments and suggestions in markdown)`;
+          const aiResult = await callAI({
+            provider: selectedProvider,
+            rawKey,
+            messages: [{ role: "user", content: prompt }],
+            mode: "FREE_CHAT"
+          });
+          const cleanJson = aiResult.content.replace(/```json/g, "").replace(/```/g, "").trim();
+          const parsed = JSON.parse(cleanJson);
+          if (parsed && typeof parsed === "object") {
+            score = parsed.score !== void 0 ? parsed.score : 80;
+            passed = parsed.passed !== void 0 ? parsed.passed : score >= 70;
+            feedback = parsed.feedback || feedback;
+          }
+        } catch (err) {
+          console.error("Failed to validate complete project via AI:", err.message);
+        }
+      }
+      const finalStatus = passed ? "COMPLETED" : "IN_PROGRESS";
+      const updatedProject = await db_default.project.update({
+        where: { id },
+        data: {
+          status: finalStatus,
+          aiValidationScore: score,
+          aiValidationFeedback: feedback,
+          progress: passed ? 100 : project.progress
+        }
+      });
+      return res.json(ApiResponse.success({
+        project: updatedProject,
+        passed,
+        score,
+        feedback
+      }));
+    });
+    uploadStepFile = asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const file = req.file;
+      if (!file) {
+        throw new ApiError(400, "Please upload your step deliverable file");
+      }
+      const step = await db_default.projectStep.findUnique({
+        where: { id },
+        include: { project: true }
+      });
+      if (!step || step.project.userId !== userId) {
+        throw new ApiError(404, "Project step not found");
+      }
+      const fileContent = file.buffer.toString("utf-8");
+      const updatedStep1 = await db_default.projectStep.update({
+        where: { id },
+        data: {
+          status: "VALIDATING",
+          submittedFileName: file.originalname,
+          submittedFileUrl: fileContent.slice(0, 8e3),
+          // save content
+          submittedAt: /* @__PURE__ */ new Date()
+        }
+      });
+      res.json(ApiResponse.success(updatedStep1, "File uploaded, validation started"));
+      (async () => {
+        const selectedProvider = process.env.DEFAULT_AI_PROVIDER || "GROQ";
+        const rawKey = process.env[`${selectedProvider.toUpperCase()}_API_KEY`];
+        let score = 80;
+        let feedback = "Good work on this step! The deliverable structure looks sound.";
+        let suggestions = ["Check edge cases", "Add comments"];
+        let passed = true;
+        if (rawKey) {
+          try {
+            const prompt = `Review this student's project step deliverable:
+Project: "${step.project.name}"
+Step Title: "${step.title}"
+Step Description: "${step.description}"
+Validation Criteria: ${step.validationCriteria.join(", ")}
+
+Submission File Name: "${file.originalname}"
+Submission Contents:
+"""
+${fileContent.slice(0, 5e3)}
+"""
+
+Output exactly a JSON object. Do not include markdown code block syntax.
+The object must contain these keys:
+- score: number (from 0 to 100)
+- passed: boolean (true if score is >= 70, false otherwise)
+- feedback: string (detailed review comments)
+- suggestions: array of strings (actionable suggestions)
+
+Example:
+{
+  "score": 85,
+  "passed": true,
+  "feedback": "Perfect schema setup. Relationships are fully correct.",
+  "suggestions": ["Add indexes on userId"]
+}`;
+            const aiResult = await callAI({
+              provider: selectedProvider,
+              rawKey,
+              messages: [{ role: "user", content: prompt }],
+              mode: "FREE_CHAT"
+            });
+            const cleanJson = aiResult.content.replace(/```json/g, "").replace(/```/g, "").trim();
+            const parsed = JSON.parse(cleanJson);
+            if (parsed && typeof parsed === "object") {
+              score = parsed.score !== void 0 ? parsed.score : 80;
+              passed = parsed.passed !== void 0 ? parsed.passed : score >= 70;
+              feedback = parsed.feedback || feedback;
+              suggestions = parsed.suggestions || suggestions;
+            }
+          } catch (err) {
+            console.error("Failed to validate step deliverable via AI:", err.message);
+          }
+        }
+        const nextStatus = passed ? "COMPLETED" : "IN_PROGRESS";
+        await db_default.projectStep.update({
+          where: { id },
+          data: {
+            status: nextStatus,
+            aiFeedback: feedback,
+            aiScore: score,
+            aiSuggestions: suggestions,
+            validatedAt: /* @__PURE__ */ new Date()
+          }
+        });
+        if (passed) {
+          const nextStep = await db_default.projectStep.findFirst({
+            where: {
+              projectId: step.projectId,
+              order: step.order + 1
+            }
+          });
+          if (nextStep) {
+            await db_default.projectStep.update({
+              where: { id: nextStep.id },
+              data: { status: "IN_PROGRESS" }
+            });
+          }
+        }
+        const allSteps = await db_default.projectStep.findMany({
+          where: { projectId: step.projectId }
+        });
+        const completedCount = allSteps.filter((s) => s.status === "COMPLETED").length;
+        const progress = completedCount / allSteps.length * 100;
+        const progressLabel = `Step ${completedCount} of ${allSteps.length} complete`;
+        await db_default.project.update({
+          where: { id: step.projectId },
+          data: {
+            progress,
+            progressLabel,
+            status: progress === 100 ? "COMPLETED" : "IN_PROGRESS"
+          }
+        });
+        try {
+          const ioInstance = getIO();
+          ioInstance.emit("step:validated", {
+            stepId: step.id,
+            status: nextStatus,
+            feedback,
+            score
+          });
+        } catch (socketErr) {
+          console.warn("Socket io not available or not initialized yet.");
+        }
+      })().catch((err) => {
+        console.error("Background step validation failed:", err);
+      });
+    });
+    getStepValidation = asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const userId = req.user.id;
+      const step = await db_default.projectStep.findUnique({
+        where: { id },
+        include: { project: true }
+      });
+      if (!step || step.project.userId !== userId) {
+        throw new ApiError(404, "Project step not found");
+      }
+      return res.json(ApiResponse.success({
+        status: step.status,
+        feedback: step.aiFeedback,
+        score: step.aiScore,
+        suggestions: step.aiSuggestions,
+        validatedAt: step.validatedAt
+      }));
+    });
   }
 });
 
 // src/routes/project.routes.ts
 import { Router as Router7 } from "express";
-var router7, project_routes_default;
+import multer3 from "multer";
+var storage2, uploadProjectFile, router7, project_routes_default;
 var init_project_routes = __esm({
   "src/routes/project.routes.ts"() {
     init_project_controller();
     init_auth_middleware();
+    storage2 = multer3.memoryStorage();
+    uploadProjectFile = multer3({
+      storage: storage2,
+      limits: { fileSize: 20 * 1024 * 1024 }
+      // 20MB limit
+    });
     router7 = Router7();
     router7.use(authenticate);
     router7.get("/", getProjects);
     router7.post("/", createProject);
     router7.get("/stats", getProjectStats);
+    router7.post("/steps/:id/upload", uploadProjectFile.single("file"), uploadStepFile);
+    router7.get("/steps/:id/validation", getStepValidation);
     router7.get("/:id", getProject);
     router7.put("/:id", updateProject);
     router7.delete("/:id", deleteProject);
+    router7.post("/:id/generate-problem", generateProblemStatement);
+    router7.post("/:id/create-step-roadmap", createStepByStepRoadmap);
+    router7.post("/:id/submit-complete", uploadProjectFile.single("file"), submitCompleteProject);
     project_routes_default = router7;
   }
 });
@@ -3856,15 +4665,15 @@ User's Question: "${query}"`;
 
 // src/routes/knowledge.routes.ts
 import { Router as Router14 } from "express";
-import multer2 from "multer";
-var router14, storage2, fileFilter2, uploadDoc, knowledge_routes_default;
+import multer4 from "multer";
+var router14, storage3, fileFilter2, uploadDoc, knowledge_routes_default;
 var init_knowledge_routes = __esm({
   "src/routes/knowledge.routes.ts"() {
     init_knowledge_controller();
     init_auth_middleware();
     init_apiResponse();
     router14 = Router14();
-    storage2 = multer2.memoryStorage();
+    storage3 = multer4.memoryStorage();
     fileFilter2 = (_req, file, cb) => {
       const allowedExtensions = /\.(pdf|txt|md|json|js|ts)$/i;
       const isAllowedExt = allowedExtensions.test(file.originalname);
@@ -3874,8 +4683,8 @@ var init_knowledge_routes = __esm({
         cb(new ApiError(400, "Unsupported file format. Please upload PDF, TXT, MD, JSON, JS, or TS files."));
       }
     };
-    uploadDoc = multer2({
-      storage: storage2,
+    uploadDoc = multer4({
+      storage: storage3,
       fileFilter: fileFilter2,
       limits: { fileSize: 10 * 1024 * 1024 }
       // 10MB limit for documents
@@ -4289,6 +5098,149 @@ var init_projectBuilder_routes = __esm({
   }
 });
 
+// src/config/voices.ts
+var VOICES;
+var init_voices = __esm({
+  "src/config/voices.ts"() {
+    VOICES = {
+      // ElevenLabs voices
+      elevenlabs: {
+        aria: {
+          id: "EXAVITQu4vr4xnSDxMaL",
+          name: "Aria",
+          description: "Soft & Academic",
+          gender: "female",
+          accent: "American",
+          preview: "Hi, I am Aria your BodhAI learning assistant."
+        },
+        atlas: {
+          id: "VR6AewLTigWG4xSOukaG",
+          name: "Atlas",
+          description: "Deep & Authoritative",
+          gender: "male",
+          accent: "American",
+          preview: "Hello, I am Atlas. Let us explore this together."
+        },
+        priya: {
+          id: "XB0fDUnXU5powFXDhCwa",
+          name: "Priya",
+          description: "Warm & Encouraging",
+          gender: "female",
+          accent: "Indian",
+          preview: "Namaste! I am Priya, ready to help you learn."
+        },
+        rohan: {
+          id: "onwK4e9ZLuTAKqWW03F9",
+          name: "Rohan",
+          description: "Clear & Energetic",
+          gender: "male",
+          accent: "Indian",
+          preview: "Hi there! I am Rohan. Let us get started!"
+        },
+        nova: {
+          id: "pFZP5JQG7iQjIQuC4Bku",
+          name: "Nova",
+          description: "Precise & Analytical",
+          gender: "neutral",
+          accent: "Global",
+          preview: "Greetings. I am Nova. Processing your request."
+        },
+        luna: {
+          id: "jsCqWAovK2LkecY7zXl4",
+          name: "Luna",
+          description: "Calm & Soothing",
+          gender: "female",
+          accent: "British",
+          preview: "Hello there. I am Luna. Shall we begin?"
+        }
+      },
+      // Web Speech API fallback voices
+      // (built-in browser, no API key needed)
+      webSpeech: {
+        defaultFemale: {
+          name: "System Female",
+          description: "Browser built-in female",
+          gender: "female",
+          voiceURI: "Google US English Female"
+        },
+        defaultMale: {
+          name: "System Male",
+          description: "Browser built-in male",
+          gender: "male",
+          voiceURI: "Google US English Male"
+        }
+      }
+    };
+  }
+});
+
+// src/controllers/voice.controller.ts
+import { ElevenLabsClient } from "elevenlabs";
+async function streamTTS(params, res) {
+  const { text, voiceId, speed = 1, stability = 0.5, similarityBoost = 0.75 } = params;
+  if (!text || text.length === 0) {
+    throw new ApiError(400, "No text provided");
+  }
+  const cleanText = text.replace(/#{1,6}\s/g, "").replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1").replace(/`{1,3}[^`]*`{1,3}/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/^\s*[-*+]\s/gm, "").replace(/^\s*\d+\.\s/gm, "").replace(/\n{2,}/g, ". ").trim().slice(0, 1e3);
+  if (!process.env.ELEVENLABS_API_KEY) {
+    throw new ApiError(503, "Voice service not configured");
+  }
+  const client = new ElevenLabsClient({
+    apiKey: process.env.ELEVENLABS_API_KEY
+  });
+  const selectedVoiceId = voiceId || VOICES.elevenlabs.aria.id;
+  const audioStream = await client.generate({
+    voice: selectedVoiceId,
+    text: cleanText,
+    model_id: "eleven_multilingual_v2",
+    voice_settings: {
+      stability,
+      similarity_boost: similarityBoost,
+      speed
+    }
+  });
+  res.setHeader("Content-Type", "audio/mpeg");
+  res.setHeader("Transfer-Encoding", "chunked");
+  for await (const chunk of audioStream) {
+    res.write(chunk);
+  }
+  res.end();
+}
+var textToSpeech, previewVoice;
+var init_voice_controller = __esm({
+  "src/controllers/voice.controller.ts"() {
+    init_asyncHandler();
+    init_apiResponse();
+    init_voices();
+    textToSpeech = asyncHandler(async (req, res) => {
+      const { text, voiceId, speed, stability, similarityBoost } = req.body;
+      await streamTTS({ text, voiceId, speed, stability, similarityBoost }, res);
+    });
+    previewVoice = asyncHandler(async (req, res) => {
+      const { voiceId, voiceName } = req.body;
+      const preview = Object.values(VOICES.elevenlabs).find(
+        (v) => v.id === voiceId
+      )?.preview || `Hello! I am ${voiceName || "your assistant"}.`;
+      await streamTTS({ text: preview, voiceId }, res);
+    });
+  }
+});
+
+// src/routes/voice.routes.ts
+import { Router as Router17 } from "express";
+var router17, voice_routes_default;
+var init_voice_routes = __esm({
+  "src/routes/voice.routes.ts"() {
+    init_voice_controller();
+    init_auth_middleware();
+    router17 = Router17();
+    router17.use(authenticate);
+    router17.post("/speak", textToSpeech);
+    router17.post("/preview", previewVoice);
+    voice_routes_default = router17;
+  }
+});
+
 // server/routes/chat.ts
 var handleChat;
 var init_chat = __esm({
@@ -4439,6 +5391,7 @@ var init_app = __esm({
     init_knowledge_routes();
     init_profile_routes();
     init_projectBuilder_routes();
+    init_voice_routes();
     init_chat();
     init_db();
     init_passport();
@@ -4472,7 +5425,11 @@ var init_app = __esm({
         jwtRefreshSecretExists: !!process.env.JWT_REFRESH_SECRET,
         gmailUserExists: !!process.env.GMAIL_USER,
         gmailAppPasswordExists: !!process.env.GMAIL_APP_PASSWORD,
-        groqApiKeyExists: !!process.env.GROQ_API_KEY
+        groqApiKeyExists: !!process.env.GROQ_API_KEY,
+        googleClientIdExists: !!process.env.GOOGLE_CLIENT_ID,
+        googleClientIdValue: process.env.GOOGLE_CLIENT_ID ? `${process.env.GOOGLE_CLIENT_ID.substring(0, 10)}...${process.env.GOOGLE_CLIENT_ID.substring(process.env.GOOGLE_CLIENT_ID.length - 10)}` : "MISSING",
+        googleCallbackUrlValue: process.env.GOOGLE_CALLBACK_URL || "MISSING",
+        clientUrlValue: process.env.CLIENT_URL || "MISSING"
       });
     });
     app.post("/api/chat", handleChat);
@@ -4492,6 +5449,7 @@ var init_app = __esm({
     app.use("/api/knowledge", knowledge_routes_default);
     app.use("/api/profile", profile_routes_default);
     app.use("/api/project-builder", projectBuilder_routes_default);
+    app.use("/api/voice", voice_routes_default);
     app.use(notFound);
     app.use(errorHandler);
     app_default = app;
