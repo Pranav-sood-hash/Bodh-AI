@@ -20,9 +20,9 @@ api.interceptors.response.use(
     const original = err.config;
     if (err.response?.status === 401 && !original._retry) {
       original._retry = true;
-      try {
-        const refresh = localStorage.getItem('refreshToken');
-        if (refresh) {
+      const refresh = localStorage.getItem('refreshToken');
+      if (refresh) {
+        try {
           const { data } = await axios.post(
             `${import.meta.env.VITE_API_URL || '/api'}/auth/refresh`,
             { refreshToken: refresh }
@@ -31,8 +31,11 @@ api.interceptors.response.use(
           localStorage.setItem('refreshToken', data.data.refreshToken);
           original.headers.Authorization = `Bearer ${data.data.accessToken}`;
           return api(original);
+        } catch (refreshErr) {
+          localStorage.clear();
+          window.location.href = '/login';
         }
-      } catch (refreshErr) {
+      } else {
         localStorage.clear();
         window.location.href = '/login';
       }

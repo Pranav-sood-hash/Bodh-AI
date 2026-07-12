@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const AuthCallback = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -24,9 +26,10 @@ export const AuthCallback = () => {
 
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    queryClient.clear();
 
     navigate('/dashboard', { replace: true });
-  }, [navigate]);
+  }, [navigate, queryClient]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">

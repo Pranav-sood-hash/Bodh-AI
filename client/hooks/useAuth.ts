@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../lib/axios';
 
 const getErrorMessage = (err: any): string => {
@@ -23,6 +24,7 @@ const getErrorMessage = (err: any): string => {
 
 export const useAuth = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,6 +51,7 @@ export const useAuth = () => {
       const { data } = await api.post('/auth/verify-email', { email, otp });
       localStorage.setItem('accessToken', data.data.accessToken);
       localStorage.setItem('refreshToken', data.data.refreshToken);
+      queryClient.clear();
       
       navigate('/dashboard');
     } catch (err: any) {
@@ -66,6 +69,7 @@ export const useAuth = () => {
       const { data: res } = await api.post('/auth/login', data);
       localStorage.setItem('accessToken', res.data.accessToken);
       localStorage.setItem('refreshToken', res.data.refreshToken);
+      queryClient.clear();
       navigate('/dashboard');
     } catch (err: any) {
       const msg = getErrorMessage(err);
@@ -148,6 +152,7 @@ export const useAuth = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('currentUser');
+    queryClient.clear();
     navigate('/login');
   };
 
