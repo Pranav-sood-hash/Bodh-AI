@@ -71,7 +71,7 @@ export default function DebateSetupModal({
 }: DebateSetupModalProps) {
   const [question, setQuestion] = useState(initialQuestion);
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
-  const [rounds, setRounds] = useState(2);
+  const [rounds, setRounds] = useState(3);
   const [mode] = useState('FREE_CHAT');
 
   const toggleProvider = (provider: string) => {
@@ -103,26 +103,33 @@ export default function DebateSetupModal({
           <div className="flex items-center gap-2 mb-3">
             <span className="text-sm font-bold text-slate-700">How it works:</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-600">
+          <div className="flex items-center gap-2 text-[10px] text-slate-600">
             <div className="flex flex-col items-center gap-1 flex-1">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-[11px] font-bold text-blue-700">
                 1️⃣
               </div>
-              <span className="text-center">Each AI gives best answer</span>
+              <span className="text-center font-semibold">R1: Initial answers</span>
             </div>
-            <div className="text-slate-300 text-lg">→</div>
+            <div className="text-slate-350 text-xs">→</div>
             <div className="flex flex-col items-center gap-1 flex-1">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center text-[11px] font-bold text-orange-700">
                 2️⃣
               </div>
-              <span className="text-center">AIs critique each other</span>
+              <span className="text-center font-semibold">R2: Read & critique</span>
             </div>
-            <div className="text-slate-300 text-lg">→</div>
+            <div className="text-slate-350 text-xs">→</div>
             <div className="flex flex-col items-center gap-1 flex-1">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center text-[11px] font-bold text-purple-700">
+                3️⃣
+              </div>
+              <span className="text-center font-semibold">R3: Final revisions</span>
+            </div>
+            <div className="text-slate-350 text-xs">→</div>
+            <div className="flex flex-col items-center gap-1 flex-1">
+              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center text-[11px] font-bold text-green-700">
                 ✅
               </div>
-              <span className="text-center">One consensus answer</span>
+              <span className="text-center font-semibold">Synthesis: Consensus</span>
             </div>
           </div>
         </div>
@@ -217,20 +224,20 @@ export default function DebateSetupModal({
                 roundsVal: 1,
                 label: 'Quick',
                 desc: '~1 min',
-                detail: 'Initial answers'
+                detail: 'Initial answers only'
               },
               {
                 roundsVal: 2,
                 label: 'Standard',
                 desc: '~3 min',
-                detail: 'Initial + critique',
-                recommended: true
+                detail: 'Initial + critiques'
               },
               {
                 roundsVal: 3,
                 label: 'Deep',
-                desc: '~6 min',
-                detail: '3-round debate'
+                desc: '~5 min',
+                detail: '3-round debate mode',
+                recommended: true
               }
             ].map(opt => (
               <button

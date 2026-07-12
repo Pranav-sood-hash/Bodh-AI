@@ -2,6 +2,7 @@ import prisma from '../config/db';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiResponse, ApiError } from '../utils/apiResponse';
 import { callAI } from '../services/ai/ai.router.service';
+import { logQuizCompletion } from '../utils/progress';
 
 export const getMilestoneQuiz = asyncHandler(async (req, res) => {
   const { milestoneId } = req.params;
@@ -137,6 +138,9 @@ export const submitQuizAnswers = asyncHandler(async (req, res) => {
         completedAt: new Date(),
       },
     });
+
+    // Log the milestone completion to the progress tracker
+    await logQuizCompletion(userId, milestone.title, milestone.skillsGained, score);
 
     // Unlock next milestone
     const nextMilestone = await prisma.roadmapMilestone.findFirst({

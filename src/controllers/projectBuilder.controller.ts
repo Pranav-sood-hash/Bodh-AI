@@ -2,6 +2,7 @@ import prisma from '../config/db';
 import { asyncHandler } from '../utils/asyncHandler';
 import { ApiResponse, ApiError } from '../utils/apiResponse';
 import { callAI } from '../services/ai/ai.router.service';
+import { logProjectStepValidation } from '../utils/progress';
 
 export const generateProjectSteps = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
@@ -248,6 +249,15 @@ Example:
 
   // If passed, unlock the next step (set it to IN_PROGRESS)
   if (passed) {
+    // Log the step completion to the progress tracker
+    await logProjectStepValidation(
+      userId,
+      step.project.name,
+      step.title,
+      step.project.techStack,
+      score
+    );
+
     const nextStep = await prisma.projectStep.findFirst({
       where: {
         projectId: step.projectId,

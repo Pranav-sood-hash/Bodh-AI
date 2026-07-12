@@ -22,26 +22,167 @@ export default function Progress() {
   const { profile } = useProfile();
   const userName = profile ? `${profile.firstName} ${profile.lastName}` : '';
 
-  // Weekly stats
-  const weeklyData = [
-    { week: 'Wk 1', Target: 10, Practiced: 8 },
-    { week: 'Wk 2', Target: 10, Practiced: 11 },
-    { week: 'Wk 3', Target: 15, Practiced: 14 },
-    { week: 'Wk 4', Target: 15, Practiced: 18 },
-    { week: 'Wk 5', Target: 20, Practiced: 16 },
-  ];
+  // Helper to construct the heatmap grid of 28 weeks (columns) and 7 days (rows)
+  const getHeatmapGrid = () => {
+    const today = new Date();
+    // Get current day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+    const currentDay = today.getDay();
+    // Map Sunday (0) to 6, Monday (1) to 0, Tuesday (2) to 1, etc.
+    const dayOffset = currentDay === 0 ? 6 : currentDay - 1;
 
-  // Map of contribution cells (grid of 7 rows, 28 columns)
-  const heatmapRows = Array.from({ length: 7 });
-  const heatmapCols = Array.from({ length: 28 });
+    // Find the Monday of the current week
+    const currentWeekMonday = new Date(today);
+    currentWeekMonday.setDate(today.getDate() - dayOffset);
+    currentWeekMonday.setHours(0, 0, 0, 0);
+
+    // Start date is Monday of 27 weeks ago (total 28 weeks including current week)
+    const startDate = new Date(currentWeekMonday);
+    startDate.setDate(currentWeekMonday.getDate() - 27 * 7);
+
+    // Create a lookup map of log dates to their activity counts
+    const logMap = new Map<string, { activityCount: number; hoursStudied: number }>();
+    
+    // Merge backend activity logs and heatmap
+    const allLogs = [
+      ...(heatmap || []),
+      ...(progress?.activityLogs || [])
+    ];
+
+    allLogs.forEach((log: any) => {
+      if (!log.date) return;
+      const logDate = new Date(log.date);
+      const year = logDate.getFullYear();
+      const month = String(logDate.getMonth() + 1).padStart(2, '0');
+      const day = String(logDate.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      const count = log.activityCount !== undefined ? log.activityCount : (log.count || 0);
+      const hours = log.hoursStudied || 0;
+
+      const existing = logMap.get(dateStr);
+      if (existing) {
+        logMap.set(dateStr, {
+          activityCount: Math.max(existing.activityCount, count),
+          hoursStudied: Math.max(existing.hoursStudied, hours)
+        });
+      } else {
+        logMap.set(dateStr, { activityCount: count, hoursStudied: hours });
+      }
+    });
+
+    const grid = [];
+    for (let col = 0; col < 28; col++) {
+      const colDays = [];
+      for (let row = 0; row < 7; row++) {
+        const cellDate = new Date(startDate);
+        cellDate.setDate(startDate.getDate() + col * 7 + row);
+        
+        const year = cellDate.getFullYear();
+        const month = String(cellDate.getMonth() + 1).padStart(2, '0');
+        const day = String(cellDate.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        const logData = logMap.get(dateStr);
+        colDays.push({
+          date: cellDate,
+          dateStr,
+          count: logData ? logData.activityCount : 0,
+          hoursStudied: logData ? logData.hoursStudied : 0
+        });
+      }
+      grid.push(colDays);
+    }
+    return grid;
+  };
+
+  // Helper to group daily logs into 5 weeks for Recharts Volume Progress
+  const getWeeklyData = () => {
+    const logs = progress?.activityLogs || [];
+    if (logs.length === 0) {
+      return [
+        { week: 'Wk 1', Target: 10, Practiced: 8 },
+        { week: 'Wk 2', Target: 10, Practiced: 11 },
+        { week: 'Wk 3', Target: 15, Practiced: 14 },
+        { week: 'Wk 4', Target: 15, Practiced: 18 },
+        { week: 'Wk 5', Target: 20, Practiced: 16 },
+      ];
+    }
+
+    const today = new Date();
+    const currentDay = today.getDay();
+    const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
+    const startOfCurrentWeek = new Date(today);
+    startOfCurrentWeek.setDate(today.getDate() - distanceToMonday);
+    startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+    const weeks = Array.from({ length: 5 }).map((_, idx) => {
+      const weekStart = new Date(startOfCurrentWeek);
+      weekStart.setDate(startOfCurrentWeek.getDate() - (4 - idx) * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      return {
+        label: `Wk ${idx + 1}`,
+        start: weekStart,
+        end: weekEnd,
+        Practiced: 0,
+        Target: 10 + idx * 2.5,
+      };
+    });
+
+    logs.forEach((log: any) => {
+      const logDate = new Date(log.date);
+      for (const w of weeks) {
+        if (logDate >= w.start && logDate <= w.end) {
+          w.Practiced += log.hoursStudied || 0;
+          break;
+        }
+      }
+    });
+
+    return weeks.map(w => ({
+      week: w.label,
+      Target: w.Target,
+      Practiced: parseFloat(w.Practiced.toFixed(1))
+    }));
+  };
 
   // Use dynamic mastery if available
-  const mappedGauges = progress?.mastery || [
-    { name: 'Pythonic Constructs & Exception Systems', val: 95, color: 'from-emerald-500 to-teal-500' },
-    { name: 'Data Structures & Sort Algorithms Complexity', val: 72, color: 'from-yellow-500 to-orange-500' },
-    { name: 'OOP Encapsulation & Polymorphic Architectures', val: 50, color: 'from-cyan-500 to-blue-500' },
-    { name: 'Distributed System Rate Limit Policies', val: 25, color: 'from-purple-500 to-pink-500' },
-  ];
+  const rawMastery = progress?.topicMastery || progress?.mastery || [];
+  const mappedGauges = rawMastery.length > 0
+    ? rawMastery.map((m: any, idx: number) => {
+        const colors = [
+          'from-emerald-500 to-teal-500',
+          'from-yellow-500 to-orange-500',
+          'from-cyan-500 to-blue-500',
+          'from-purple-500 to-pink-500'
+        ];
+        return {
+          name: m.topic || m.name,
+          val: m.mastery !== undefined ? m.mastery : (m.val || 0),
+          color: colors[idx % colors.length]
+        };
+      })
+    : [
+        { name: 'Pythonic Constructs & Exception Systems', val: 95, color: 'from-emerald-500 to-teal-500' },
+        { name: 'Data Structures & Sort Algorithms Complexity', val: 72, color: 'from-yellow-500 to-orange-500' },
+        { name: 'OOP Encapsulation & Polymorphic Architectures', val: 50, color: 'from-cyan-500 to-blue-500' },
+        { name: 'Distributed System Rate Limit Policies', val: 25, color: 'from-purple-500 to-pink-500' },
+      ];
+
+  // Use dynamic milestones if available
+  const rawMilestones = progress?.milestones || progress?.achievements || [];
+  const mappedMilestones = rawMilestones.length > 0
+    ? rawMilestones.map((m: any) => ({
+        title: m.title,
+        level: m.type ? `${m.type.charAt(0) + m.type.slice(1).toLowerCase()} Unlocked` : 'Unlocked',
+        description: m.metadata || m.description || 'Achievement recorded'
+      }))
+    : [
+        { title: 'Python Loop Master', level: 'Level 1 Complete', description: 'Wrote sum_squares evaluation script' },
+        { title: 'Offline Dictation', level: 'Atlas Speech Sync', description: 'Configured customized 1.0 speech pitch rate parameters' },
+        { title: 'Architectural Judge', level: 'Paradigm comparer log', description: 'Assessed functional state purity side-by-side' },
+      ];
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -125,13 +266,17 @@ export default function Progress() {
                 </div>
 
                 <div className="flex gap-1.5 shrink-0">
-                  {heatmapCols.map((_, colIdx) => (
+                  {getHeatmapGrid().map((column: any[], colIdx: number) => (
                     <div key={colIdx} className="flex flex-col gap-1.5">
-                      {heatmapRows.map((_, rowIdx) => {
-                        const dayIndex = colIdx * 7 + rowIdx;
-                        const dataPoint = heatmap?.[dayIndex];
-                        const count = dataPoint?.count || 0;
-                        
+                      {column.map((cell: any, rowIdx: number) => {
+                        const count = cell.count;
+                        const hours = cell.hoursStudied;
+                        const dateLabel = cell.date.toLocaleDateString(undefined, { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        });
+
                         let color = 'bg-slate-100'; 
                         if (count >= 5) color = 'bg-cyan-500 shadow-[0_0_4px_rgba(6,182,212,0.25)]';
                         else if (count >= 3) color = 'bg-cyan-400/60';
@@ -141,7 +286,7 @@ export default function Progress() {
                           <div
                             key={rowIdx}
                             className={`w-3 h-3 rounded smooth-transition hover:scale-125 cursor-crosshair ${color}`}
-                            title={`Day ${dayIndex}: ${count} evaluation items logged`}
+                            title={`${dateLabel}: ${count} activities, ${hours}h studied`}
                           />
                         );
                       })}
@@ -190,7 +335,7 @@ export default function Progress() {
               <div className="h-[200px] w-full text-xs">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={weeklyData}
+                    data={getWeeklyData()}
                     margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -220,11 +365,7 @@ export default function Progress() {
             <span className="text-[10px] text-purple-600 font-bold uppercase tracking-wider block select-none">Conceptual Accolades Earned</span>
             
             <div className="flex flex-wrap gap-4 select-none">
-              {(progress?.achievements || [
-                { title: 'Python Loop Master', level: 'Level 1 Complete', description: 'Wrote sum_squares evaluation script' },
-                { title: 'Offline Dictation', level: 'Atlas Speech Sync', description: 'Configured customized 1.0 speech pitch rate parameters' },
-                { title: 'Architectural Judge', level: 'Paradigm comparer log', description: 'Assessed functional state purity side-by-side' },
-              ]).map((badge: any) => (
+              {mappedMilestones.map((badge: any) => (
                 <div 
                   key={badge.title}
                   className="flex-1 min-w-[200px] bg-slate-50 border border-slate-200/60 rounded-xl p-4 flex gap-3 items-center hover:border-purple-500/20 smooth-transition"

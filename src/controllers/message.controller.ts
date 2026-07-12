@@ -3,21 +3,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { ApiResponse, ApiError } from '../utils/apiResponse';
 import { callAI, calculateCost } from '../services/ai/ai.router.service';
 import { decrypt } from '../services/encryption.service';
-
-// Helper: upsert daily activity log
-const upsertActivityLog = async (userId: string) => {
-  const progress = await prisma.progress.findUnique({ where: { userId } });
-  if (!progress) return;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  await prisma.activityLog.upsert({
-    where: { progressId_date: { progressId: progress.id, date: today } },
-    update: { activityCount: { increment: 1 } },
-    create: { progressId: progress.id, date: today, activityCount: 1 },
-  });
-};
+import { logStudyActivity } from '../utils/progress';
 
 export const sendMessage = asyncHandler(async (req, res) => {
   const { chatId, content, provider, model, mode } = req.body;
@@ -110,7 +96,7 @@ Message: "${content}"`;
     data: { totalMessages: { increment: 2 }, lastActiveDate: new Date() },
   });
 
-  await upsertActivityLog(userId);
+  await logStudyActivity(userId, 0.1, 2);
 
   return res.status(200).json(ApiResponse.success({
     userMessage: userMsg,
@@ -167,6 +153,14 @@ export const streamMessage = asyncHandler(async (req, res) => {
         provider: selectedProvider, model: aiResult.model,
       },
     });
+
+    // Update user stats
+    await prisma.user.update({
+      where: { id: userId },
+      data: { totalMessages: { increment: 2 }, lastActiveDate: new Date() },
+    });
+
+    await logStudyActivity(userId, 0.1, 2);
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();

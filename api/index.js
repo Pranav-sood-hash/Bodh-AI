@@ -1737,25 +1737,123 @@ var init_ai_router_service = __esm({
   }
 });
 
+// src/utils/progress.ts
+var getOrCreateProgress, logStudyActivity, logQuizCompletion, logProjectStepValidation;
+var init_progress = __esm({
+  "src/utils/progress.ts"() {
+    init_db();
+    getOrCreateProgress = async (userId) => {
+      let progress = await db_default.progress.findUnique({ where: { userId } });
+      if (!progress) {
+        progress = await db_default.progress.create({ data: { userId } });
+      }
+      return progress;
+    };
+    logStudyActivity = async (userId, hours = 0.1, count = 1) => {
+      const progress = await getOrCreateProgress(userId);
+      const today = /* @__PURE__ */ new Date();
+      today.setHours(0, 0, 0, 0);
+      await db_default.activityLog.upsert({
+        where: { progressId_date: { progressId: progress.id, date: today } },
+        update: {
+          activityCount: { increment: count },
+          hoursStudied: { increment: hours }
+        },
+        create: {
+          progressId: progress.id,
+          date: today,
+          activityCount: count,
+          hoursStudied: hours
+        }
+      });
+      if (hours > 0) {
+        await db_default.user.update({
+          where: { id: userId },
+          data: {
+            hoursStudied: { increment: hours },
+            lastActiveDate: /* @__PURE__ */ new Date()
+          }
+        });
+      }
+    };
+    logQuizCompletion = async (userId, milestoneTitle, skillsGained, score) => {
+      const progress = await getOrCreateProgress(userId);
+      await db_default.milestone.create({
+        data: {
+          progressId: progress.id,
+          userId,
+          title: `${milestoneTitle} Quiz`,
+          type: "BADGE",
+          metadata: `Scored ${score.toFixed(0)}% on the evaluation quiz.`
+        }
+      });
+      for (const skill of skillsGained) {
+        await db_default.topicMastery.upsert({
+          where: {
+            progressId_topic: {
+              progressId: progress.id,
+              topic: skill
+            }
+          },
+          update: {
+            mastery: { set: score },
+            lastStudied: /* @__PURE__ */ new Date()
+          },
+          create: {
+            progressId: progress.id,
+            topic: skill,
+            mastery: score,
+            lastStudied: /* @__PURE__ */ new Date()
+          }
+        });
+      }
+      await logStudyActivity(userId, 0.5, 3);
+    };
+    logProjectStepValidation = async (userId, projectName, stepTitle, techStack, score) => {
+      const progress = await getOrCreateProgress(userId);
+      await db_default.milestone.create({
+        data: {
+          progressId: progress.id,
+          userId,
+          title: `${projectName} - ${stepTitle}`,
+          type: "PROJECT",
+          metadata: `Validated step deliverables with an AI score of ${score.toFixed(0)}%.`
+        }
+      });
+      for (const tech of techStack) {
+        await db_default.topicMastery.upsert({
+          where: {
+            progressId_topic: {
+              progressId: progress.id,
+              topic: tech
+            }
+          },
+          update: {
+            mastery: { set: score },
+            lastStudied: /* @__PURE__ */ new Date()
+          },
+          create: {
+            progressId: progress.id,
+            topic: tech,
+            mastery: score,
+            lastStudied: /* @__PURE__ */ new Date()
+          }
+        });
+      }
+      await logStudyActivity(userId, 1, 5);
+    };
+  }
+});
+
 // src/controllers/message.controller.ts
-var upsertActivityLog, sendMessage, streamMessage, getMessages, deleteMessage;
+var sendMessage, streamMessage, getMessages, deleteMessage;
 var init_message_controller = __esm({
   "src/controllers/message.controller.ts"() {
     init_db();
     init_asyncHandler();
     init_apiResponse();
     init_ai_router_service();
-    upsertActivityLog = async (userId) => {
-      const progress = await db_default.progress.findUnique({ where: { userId } });
-      if (!progress) return;
-      const today = /* @__PURE__ */ new Date();
-      today.setHours(0, 0, 0, 0);
-      await db_default.activityLog.upsert({
-        where: { progressId_date: { progressId: progress.id, date: today } },
-        update: { activityCount: { increment: 1 } },
-        create: { progressId: progress.id, date: today, activityCount: 1 }
-      });
-    };
+    init_progress();
     sendMessage = asyncHandler(async (req, res) => {
       const { chatId, content, provider, model, mode } = req.body;
       const userId = req.user.id;
@@ -1832,7 +1930,7 @@ Message: "${content}"`;
         where: { id: userId },
         data: { totalMessages: { increment: 2 }, lastActiveDate: /* @__PURE__ */ new Date() }
       });
-      await upsertActivityLog(userId);
+      await logStudyActivity(userId, 0.1, 2);
       return res.status(200).json(ApiResponse.success({
         userMessage: userMsg,
         assistantMessage: assistantMsg,
@@ -1883,6 +1981,11 @@ Message: "${content}"`;
             model: aiResult.model
           }
         });
+        await db_default.user.update({
+          where: { id: userId },
+          data: { totalMessages: { increment: 2 }, lastActiveDate: /* @__PURE__ */ new Date() }
+        });
+        await logStudyActivity(userId, 0.1, 2);
         res.write(`data: ${JSON.stringify({ done: true })}
 
 `);
@@ -4142,6 +4245,7 @@ var init_quiz_controller = __esm({
     init_asyncHandler();
     init_apiResponse();
     init_ai_router_service();
+    init_progress();
     getMilestoneQuiz = asyncHandler(async (req, res) => {
       const { milestoneId } = req.params;
       const milestone = await db_default.roadmapMilestone.findUnique({
@@ -4257,6 +4361,7 @@ Example:
             completedAt: /* @__PURE__ */ new Date()
           }
         });
+        await logQuizCompletion(userId, milestone.title, milestone.skillsGained, score);
         const nextMilestone = await db_default.roadmapMilestone.findFirst({
           where: {
             roadmapId: milestone.roadmapId,
@@ -4850,6 +4955,7 @@ var init_projectBuilder_controller = __esm({
     init_asyncHandler();
     init_apiResponse();
     init_ai_router_service();
+    init_progress();
     generateProjectSteps = asyncHandler(async (req, res) => {
       const { projectId } = req.params;
       const userId = req.user.id;
@@ -5062,6 +5168,13 @@ Example:
         }
       });
       if (passed) {
+        await logProjectStepValidation(
+          userId,
+          step.project.name,
+          step.title,
+          step.project.techStack,
+          score
+        );
         const nextStep = await db_default.projectStep.findFirst({
           where: {
             projectId: step.projectId,
@@ -5721,7 +5834,7 @@ var init_debate_controller = __esm({
         chatId,
         question,
         providers,
-        rounds = 2,
+        rounds = 3,
         mode = "FREE_CHAT"
       } = req.body;
       const userId = req.user.id;
@@ -5876,7 +5989,7 @@ var init_debate_controller = __esm({
         chatId,
         question,
         providers,
-        rounds = 2,
+        rounds = 3,
         mode = "FREE_CHAT"
       } = req.body;
       const userId = req.user.id;

@@ -37,7 +37,7 @@ export default function Chat() {
   const { status, statusMessage, currentRound, rounds, progress, isDebating, startDebate, reset } = useDebate();
 
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
-  const [debateRounds, setDebateRounds] = useState(2);
+  const [debateRounds, setDebateRounds] = useState(3);
   const [debateProviders, setDebateProviders] = useState<string[]>([]);
 
   const [input, setInput] = useState('');

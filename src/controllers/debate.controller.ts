@@ -9,7 +9,7 @@ export const startDebate = asyncHandler(async (req, res) => {
     chatId,
     question,
     providers,
-    rounds = 2,
+    rounds = 3,
     mode = 'FREE_CHAT'
   } = req.body;
   const userId = req.user.id;
@@ -190,7 +190,7 @@ export const streamDebate = asyncHandler(async (req, res) => {
     chatId,
     question,
     providers,
-    rounds = 2,
+    rounds = 3,
     mode = 'FREE_CHAT'
   } = req.body;
   const userId = req.user.id;
