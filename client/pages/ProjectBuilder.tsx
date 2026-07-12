@@ -6,11 +6,12 @@ import Sidebar from '@/components/Sidebar';
 import MobileTopBar from '@/components/MobileTopBar';
 import { 
   Wrench, CheckSquare, Square, Sparkles, Code, Search, 
-  Settings as SettingsIcon, Loader2, ArrowLeft, Upload, FileText, 
+  Settings as SettingsIcon, ArrowLeft, Upload, FileText, 
   CheckCircle2, AlertCircle, HelpCircle, Eye, Settings, Play, Lock,
   ChevronRight, RefreshCw, Star, Plus, X, Tag
 } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
+import { Loader } from '@/components/ui/loader';
 import { useProjects, useProjectDetail } from '@/hooks/useProjects';
 import { useProfile } from '@/hooks/useProfile';
 
@@ -413,8 +414,8 @@ export default function ProjectBuilder() {
         {activeProjectId ? (
           isDetailLoading ? (
             <div className="flex flex-col items-center justify-center py-32 space-y-4">
-              <Loader2 className="w-10 h-10 animate-spin text-pink-500" />
-              <span className="text-sm font-medium text-slate-500">Opening workspace...</span>
+              <Loader size="md" className="mx-auto" />
+              <span className="text-sm font-semibold bg-gradient-to-r from-pink-500 to-indigo-600 bg-clip-text text-transparent animate-pulse">Opening workspace...</span>
             </div>
           ) : (
             <div className="max-w-6xl mx-auto px-6 py-8 space-y-8 animate-fadeIn">
@@ -582,7 +583,7 @@ export default function ProjectBuilder() {
                                   {isCompleted ? (
                                     <div className="w-5 h-5 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-white shadow-sm"><CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" /></div>
                                   ) : isValidating ? (
-                                    <div className="w-5 h-5 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center text-white shadow-sm"><Loader2 className="w-3 h-3 animate-spin" /></div>
+                                    <div className="w-5 h-5 bg-blue-500 border-2 border-white rounded-full flex items-center justify-center text-white shadow-sm"><Loader size="sm" className="w-3 h-3" /></div>
                                   ) : isLocked ? (
                                     <div className="w-5 h-5 bg-slate-250 border-2 border-white rounded-full flex items-center justify-center text-slate-400 shadow-sm"><Lock className="w-3 h-3" /></div>
                                   ) : (
@@ -647,7 +648,7 @@ export default function ProjectBuilder() {
                         disabled={isUploading || !selectedFile}
                         className="w-full py-3 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2"
                       >
-                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Code className="w-4 h-4" />}
+                        {isUploading ? <Loader size="sm" /> : <Code className="w-4 h-4" />}
                         Submit Project Files
                       </button>
 
@@ -731,7 +732,7 @@ export default function ProjectBuilder() {
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Submit Deliverable File</span>
                           {currentStep.status === 'VALIDATING' && (
                             <span className="text-[10px] text-blue-500 font-bold flex items-center gap-1">
-                              <Loader2 className="w-3 h-3 animate-spin" /> AI checking...
+                              <Loader size="sm" /> AI checking...
                             </span>
                           )}
                         </div>
@@ -765,7 +766,7 @@ export default function ProjectBuilder() {
                           disabled={isUploading || !selectedFile || currentStep.status === 'VALIDATING'}
                           className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2"
                         >
-                          {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          {isUploading ? <Loader size="sm" /> : <Upload className="w-4 h-4" />}
                           Submit File
                         </button>
                       </div>
@@ -773,7 +774,7 @@ export default function ProjectBuilder() {
                       {/* AI evaluation panel for Step */}
                       {(currentStep.status === 'VALIDATING' || currentStep.status === 'IN_PROGRESS') && (
                         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3 animate-pulse">
-                          <Loader2 className="w-5 h-5 text-blue-500 animate-spin flex-shrink-0 mt-0.5" />
+                          <Loader size="sm" className="flex-shrink-0 mt-0.5" />
                           <div>
                             <p className="text-xs font-bold text-blue-800">AI Background Verification In Progress</p>
                             <p className="text-[10px] text-blue-600 mt-1 leading-normal">Our AI validation process checks your deliverables for structured logic and correct formatting. Results update automatically here.</p>
@@ -847,7 +848,7 @@ export default function ProjectBuilder() {
 
             {isListLoading ? (
               <div className="flex justify-center p-12">
-                <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+                <Loader size="md" className="mx-auto" />
               </div>
             ) : projects.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200 border-dashed select-none space-y-5">
@@ -1011,7 +1012,7 @@ export default function ProjectBuilder() {
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition"
                 >
                   {isGeneratingProblem ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-pink-500" />
+                    <Loader size="sm" />
                   ) : (
                     <Sparkles className="w-3.5 h-3.5 text-pink-500" />
                   )}
@@ -1025,7 +1026,7 @@ export default function ProjectBuilder() {
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition"
                   >
                     {isGeneratingRoadmap ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                      <Loader size="sm" />
                     ) : (
                       <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />
                     )}
@@ -1181,7 +1182,7 @@ export default function ProjectBuilder() {
                   disabled={isCreating || !newProjName.trim()}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white text-xs font-bold transition shadow-sm"
                 >
-                  {isCreating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  {isCreating ? <Loader size="sm" /> : <Plus className="w-3.5 h-3.5" />}
                   {isCreating ? 'Creating...' : 'Create Project'}
                 </button>
               </div>

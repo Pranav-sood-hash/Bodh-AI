@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Search, Bell, Settings as SettingsIcon, Plus, 
-  Map, Wrench, Calendar, BarChart3, Sliders, LogOut, Loader2
+  Map, Wrench, Calendar, BarChart3, Sliders, LogOut
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import MobileTopBar from '@/components/MobileTopBar';
+import { Loader } from '@/components/ui/loader';
 
 import api from "@/lib/axios";
 
@@ -196,8 +197,8 @@ export default function Profile() {
     return (
       <div className="flex h-screen w-screen bg-slate-50 items-center justify-center">
         <div className="flex flex-col items-center gap-3 select-none">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          <span className="text-sm font-semibold text-slate-500">Loading profile...</span>
+          <Loader size="md" className="mx-auto" />
+          <span className="text-sm font-semibold bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-pulse">Loading profile...</span>
         </div>
       </div>
     );

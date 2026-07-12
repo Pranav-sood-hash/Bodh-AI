@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader } from "../ui/loader";
 
 interface AppIntegration {
   id: string;
@@ -71,7 +71,7 @@ export default function ConnectedAppsTab() {
               }`}
             >
               {loadingId === app.id ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader size="sm" />
               ) : app.isConnected ? (
                 "Disconnect"
               ) : (

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import MobileTopBar from '@/components/MobileTopBar';
-import { Calendar, Plus, Clock, Brain, AlertCircle, Search, Mic, Settings as SettingsIcon, Loader2 } from 'lucide-react';
+import { Calendar, Plus, Clock, Brain, AlertCircle, Search, Mic, Settings as SettingsIcon } from 'lucide-react';
+import { Loader } from '@/components/ui/loader';
 import {
   AreaChart,
   Area,
@@ -191,7 +192,7 @@ export default function Planner() {
               
               {isLoading ? (
                 <div className="flex justify-center p-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+                  <Loader size="md" className="mx-auto" />
                 </div>
               ) : (
                 <div className="space-y-3">

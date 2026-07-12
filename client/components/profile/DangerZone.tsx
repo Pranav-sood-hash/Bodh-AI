@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { AlertCircle, X, Loader2 } from "lucide-react";
+import { AlertCircle, X } from "lucide-react";
+import { Loader } from "../ui/loader";
 import { useNavigate } from "react-router-dom";
 
 export default function DangerZone() {
@@ -130,7 +131,7 @@ export default function DangerZone() {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Deleting...
+                    <Loader size="sm" /> Deleting...
                   </>
                 ) : (
                   "Permanently Delete Account"

@@ -14,10 +14,10 @@ import {
   Search,
   Mic,
   Settings as SettingsIcon,
-  Loader2,
   Menu
 } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
+import { Loader } from '@/components/ui/loader';
 import { useProfile } from '@/hooks/useProfile';
 import { useProgress } from '@/hooks/useProgress';
 import { useRoadmap } from '@/hooks/useRoadmap';
@@ -68,7 +68,7 @@ export default function Dashboard() {
 
   const renderStats = () => {
     if (progressLoading || profileLoading) {
-      return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>;
+      return <div className="flex justify-center p-8"><Loader size="md" className="mx-auto" /></div>;
     }
 
     const defaultStats = [

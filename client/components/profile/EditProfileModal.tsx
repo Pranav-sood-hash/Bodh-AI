@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Lock, MapPin, Plus, Loader2 } from "lucide-react";
+import { X, Lock, MapPin, Plus } from "lucide-react";
+import { Loader } from "../ui/loader";
 import ChangeEmailModal from "./ChangeEmailModal";
 
 interface EditProfileModalProps {
@@ -393,7 +394,7 @@ export default function EditProfileModal({
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                  <Loader size="sm" /> Saving...
                 </>
               ) : (
                 "Save Changes"

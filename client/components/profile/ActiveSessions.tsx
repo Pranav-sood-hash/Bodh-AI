@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Monitor, Smartphone, Loader2, ShieldCheck } from "lucide-react";
+import { Monitor, Smartphone, ShieldCheck } from "lucide-react";
+import { Loader } from "../ui/loader";
 
 interface Session {
   id: string;
@@ -119,7 +120,7 @@ export default function ActiveSessions() {
 
       {isLoading ? (
         <div className="flex justify-center items-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+          <Loader size="md" className="mx-auto" />
         </div>
       ) : (
         <div className="space-y-3">

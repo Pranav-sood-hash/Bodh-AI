@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import MobileTopBar from '@/components/MobileTopBar';
-import { BarChart3, TrendingUp, Sparkles, Award, Search, Mic, Settings as SettingsIcon, Loader2 } from 'lucide-react';
+import { BarChart3, TrendingUp, Sparkles, Award, Search, Mic, Settings as SettingsIcon } from 'lucide-react';
+import { Loader } from '@/components/ui/loader';
 import {
   BarChart,
   Bar,
@@ -191,6 +192,17 @@ export default function Progress() {
     }
   }, [navigate]);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F4F6F9] text-slate-800 flex overflow-hidden font-sans">
+        <Sidebar userName={userName} />
+        <main className="flex-1 lg:pl-[var(--sidebar-width)] min-w-0 flex items-center justify-center">
+          <Loader size="lg" />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F4F6F9] text-slate-800 flex overflow-hidden font-sans">
       
@@ -255,7 +267,7 @@ export default function Progress() {
 
             {/* Heatmap Grid */}
             {isLoading ? (
-              <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin text-cyan-500" /></div>
+              <div className="flex justify-center p-8"><Loader size="md" className="mx-auto" /></div>
             ) : (
               <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
                 <div className="flex flex-col gap-1.5 justify-between pr-2 text-[9px] text-slate-400 font-bold font-mono select-none">

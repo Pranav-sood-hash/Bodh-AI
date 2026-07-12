@@ -100,7 +100,7 @@ export default function FeatureRouting() {
         </div>
 
         {/* Content Container */}
-        <div className="max-w-5xl mx-auto px-8 py-8 space-y-8 pb-32">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10 space-y-8 pb-32">
           
           {/* Breadcrumbs & Header */}
           <div className="space-y-1 select-none">
@@ -438,7 +438,7 @@ export default function FeatureRouting() {
         </div>
 
         {/* Sticky footer */}
-        <div className="fixed bottom-0 lg:left-[var(--sidebar-width)] left-0 right-0 border-t border-slate-200 bg-white/95 backdrop-blur-md px-8 py-4 flex items-center justify-end gap-4 z-40 select-none">
+        <div className="fixed bottom-0 lg:left-[var(--sidebar-width)] left-0 right-0 border-t border-slate-200 bg-white/95 backdrop-blur-md px-4 md:px-8 py-4 flex items-center justify-end gap-4 z-40 select-none">
           <button
             onClick={handleDiscard}
             className="text-xs font-bold text-slate-500 hover:text-slate-800 smooth-transition uppercase tracking-wider"

@@ -13,6 +13,7 @@ import {
   BookOpen, Flame, Rocket, Timer, MapPin, Code, TrendingUp, Calendar,
   Loader2, Edit2
 } from 'lucide-react';
+import { Loader } from '@/components/ui/loader';
 
 // Profile sub-components
 import EditProfileModal from '@/components/profile/EditProfileModal';
@@ -303,7 +304,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto px-8 py-8 pb-16">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10 pb-16">
 
           {/* Horizontal tab bar */}
           <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-full overflow-x-auto scrollbar-none mb-8 select-none">
@@ -330,7 +331,7 @@ export default function Settings() {
             isLoadingProfile ? (
               <div className="flex items-center justify-center py-24">
                 <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                  <Loader size="md" className="mx-auto" />
                   <span className="text-sm text-slate-500 font-medium">Loading profile...</span>
                 </div>
               </div>

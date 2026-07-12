@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Bell, Mail, ShieldAlert, Loader2, Check } from "lucide-react";
+import { Bell, Mail, ShieldAlert, Check } from "lucide-react";
+import { Loader } from "../ui/loader";
 
 interface Preferences {
   learningReminders: boolean;
@@ -94,7 +95,7 @@ export default function NotificationsTab() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+        <Loader size="md" className="mx-auto" />
       </div>
     );
   }

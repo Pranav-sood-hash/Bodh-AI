@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Clock, Award, Check, Sparkles, X, Loader2 } from 'lucide-react';
+import { Target, Clock, Award, Check, Sparkles, X } from 'lucide-react';
+import { Loader } from '../ui/loader';
 import api from '../../lib/axios';
 
 interface CreateRoadmapModalProps {
@@ -78,27 +79,27 @@ export default function CreateRoadmapModal({ isOpen, onClose, onGenerate }: Crea
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
       
       {/* Modal Shell */}
       <div 
-        className="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative p-8 space-y-6"
+        className="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-2xl flex flex-col max-h-[90vh] shadow-2xl relative overflow-hidden"
         style={{
           boxShadow: '0 0 50px rgba(6, 182, 212, 0.15)'
         }}
       >
         {/* Header decoration */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-purple-600 to-pink-500" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-purple-600 to-pink-500 shrink-0" />
         
         {/* Close button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-200 transition z-10"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div>
+        <div className="p-8 pb-0 shrink-0">
           <h2 className="text-2xl font-extrabold text-slate-100 flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-cyan-400" />
             Build New Learning Roadmap
@@ -106,8 +107,8 @@ export default function CreateRoadmapModal({ isOpen, onClose, onGenerate }: Crea
           <p className="text-xs text-slate-400 mt-1">Design a customized, AI-driven study path to organize your learning objectives.</p>
         </div>
 
-        {/* Form Fields */}
-        <div className="space-y-4">
+        {/* Scrollable Form Fields */}
+        <div className="p-8 space-y-4 overflow-y-auto scrollbar-thin flex-1">
           
           {/* Topic/Title Input */}
           <div className="space-y-2">
@@ -203,7 +204,7 @@ export default function CreateRoadmapModal({ isOpen, onClose, onGenerate }: Crea
               
               {isSuggesting ? (
                 <div className="flex items-center gap-2 py-2 text-xs text-cyan-400 font-medium">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader size="sm" />
                   Generating key focus areas for "{title}"...
                 </div>
               ) : (
@@ -233,7 +234,7 @@ export default function CreateRoadmapModal({ isOpen, onClose, onGenerate }: Crea
         </div>
 
         {/* Footer */}
-        <div className="pt-4 border-t border-white/5 flex justify-end gap-3">
+        <div className="p-8 pt-4 border-t border-white/5 flex justify-end gap-3 shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2.5 rounded-xl border border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/5 text-xs font-extrabold uppercase tracking-wider smooth-transition"
@@ -245,7 +246,7 @@ export default function CreateRoadmapModal({ isOpen, onClose, onGenerate }: Crea
             disabled={!title.trim() || isGenerating}
             className="px-6 py-2.5 bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-xl hover:brightness-110 smooth-transition shadow-[0_4px_15px_rgba(6,182,212,0.3)] active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
           >
-            {isGenerating && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {isGenerating && <Loader size="sm" />}
             {isGenerating ? 'Synthesizing...' : 'Generate Roadmap →'}
           </button>
         </div>

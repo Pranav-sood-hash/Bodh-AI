@@ -11,7 +11,6 @@ import {
   Search, 
   Mic, 
   Settings as SettingsIcon, 
-  Loader2, 
   Plus, 
   Compass, 
   Clock, 
@@ -25,6 +24,7 @@ import {
   X
 } from 'lucide-react';
 import { useChat } from '@/context/ChatContext';
+import { Loader } from '@/components/ui/loader';
 import { useRoadmap } from '@/hooks/useRoadmap';
 import { useProfile } from '@/hooks/useProfile';
 import CreateRoadmapModal from '@/components/modals/CreateRoadmapModal';
@@ -117,7 +117,7 @@ function LastMilestoneActions({ node, onAIHelp, onValidated }: LastMilestoneActi
             disabled={isChecking}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 text-white font-bold text-xs uppercase tracking-wider disabled:opacity-60 smooth-transition shadow-sm"
           >
-            {isChecking ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> AI is checking...</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Submit for AI Review</>}
+            {isChecking ? <><Loader size="sm" /> AI is checking...</> : <><CheckCircle2 className="w-3.5 h-3.5" /> Submit for AI Review</>}
           </button>
         )}
       </div>
@@ -313,7 +313,7 @@ export default function Roadmap() {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md text-white">
         <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4 text-center space-y-6 shadow-2xl">
-          <Loader2 className="w-12 h-12 animate-spin text-cyan-400 mx-auto" />
+          <Loader size="lg" className="mx-auto" />
           <div className="space-y-2">
             <h3 className="text-lg font-bold text-slate-100">
               {isGenerating ? 'Generating Learning Pathway' : 'Reoptimizing Roadmap'}
@@ -459,7 +459,7 @@ export default function Roadmap() {
               
               {isLoading && (
                 <div className="flex justify-center p-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+                  <Loader size="md" className="mx-auto" />
                 </div>
               )}
               

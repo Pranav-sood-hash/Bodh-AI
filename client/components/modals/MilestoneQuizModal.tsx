@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, CheckCircle2, XCircle, Award, ArrowRight, ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Award, ArrowRight, ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import api from '@/lib/axios';
 import { toast } from 'sonner';
+import { Loader } from '@/components/ui/loader';
 
 interface Question {
   questionText: string;
@@ -137,8 +138,8 @@ export default function MilestoneQuizModal({
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
-            <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
-            <p className="text-sm font-semibold text-slate-500 animate-pulse">
+            <Loader size="md" className="mx-auto" />
+            <p className="text-sm font-semibold bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-pulse">
               AI is preparing evaluation questions...
             </p>
           </div>
@@ -297,7 +298,7 @@ export default function MilestoneQuizModal({
                   >
                     {submitting ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader size="sm" />
                         Submitting...
                       </>
                     ) : (

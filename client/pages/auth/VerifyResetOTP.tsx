@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import AuthLayout from '../../components/auth/AuthLayout';
 import { OTPInput } from '../../components/auth/OTPInput';
 import { useAuth } from '../../hooks/useAuth';

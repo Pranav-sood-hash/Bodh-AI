@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Lock, Shield, Loader2, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, Shield, AlertCircle } from 'lucide-react';
+import { Loader } from '@/components/ui/loader';
 import AuthLayout from '../../components/auth/AuthLayout';
 import FormInput from '../../components/auth/FormInput';
 import { GoogleButton } from '../../components/auth/GoogleButton';
@@ -350,7 +351,7 @@ export default function Signup() {
           >
             {loading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader size="sm" />
                 <span>Creating account...</span>
               </>
             ) : (

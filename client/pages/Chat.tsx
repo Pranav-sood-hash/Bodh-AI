@@ -15,6 +15,7 @@ import DebateProgress from '@/components/debate/DebateProgress';
 import DebateResult from '@/components/debate/DebateResult';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Loader } from '@/components/ui/loader';
 import {
   Send,
   Paperclip,
@@ -44,6 +45,7 @@ export default function Chat() {
   const [isDictating, setIsDictating] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<string[]>([]);
   const [isVoiceOverlayOpen, setIsVoiceOverlayOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Determine chat session details
@@ -95,7 +97,7 @@ export default function Chat() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatSession?.messages]);
+  }, [chatSession?.messages, isSending]);
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -105,7 +107,12 @@ export default function Chat() {
       const textToSend = input.trim();
       setInput('');
       setAttachedFiles([]);
-      await sendMessage(chatSession.id, textToSend);
+      setIsSending(true);
+      try {
+        await sendMessage(chatSession.id, textToSend);
+      } finally {
+        setIsSending(false);
+      }
     }
   };
 
@@ -320,6 +327,20 @@ export default function Chat() {
             />
           )}
 
+          {isSending && (
+            <div className="flex w-full gap-4 max-w-4xl mr-auto justify-start animate-fadeIn">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-400 to-purple-500 flex items-center justify-center font-bold text-white text-xs shrink-0 select-none shadow-sm">
+                AI
+              </div>
+              <div className="space-y-4 max-w-[90%] flex-1">
+                <div className="bg-white border border-slate-200/80 rounded-2xl p-4 text-xs font-medium leading-relaxed mr-auto shadow-sm flex items-center gap-3 w-fit">
+                  <Loader variant="dots" size="sm" className="h-5" />
+                  <span className="text-[10px] text-slate-400 font-semibold italic animate-pulse">BodhAI is thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -352,13 +373,13 @@ export default function Chat() {
             )}
 
             {/* Input Shell */}
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:bg-white focus-within:border-purple-500/50 smooth-transition p-2 gap-2 shadow-sm">
+            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:bg-white focus-within:border-purple-500/50 smooth-transition p-1.5 sm:p-2 gap-1.5 sm:gap-2 shadow-sm">
               
               <button
                 type="button"
                 onClick={handleAttachFile}
                 title="Attach source file code"
-                className="w-10 h-10 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 flex items-center justify-center shrink-0 smooth-transition"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 flex items-center justify-center shrink-0 smooth-transition"
               >
                 <Paperclip className="w-4 h-4" />
               </button>
@@ -367,7 +388,7 @@ export default function Chat() {
                 type="button"
                 onClick={handleSpeechToggle}
                 title={isDictating ? 'Stop dictating' : 'Speak speech query'}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border smooth-transition ${
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 border smooth-transition ${
                   isDictating
                     ? 'bg-rose-500 border-rose-500 text-white animate-pulse'
                     : 'bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50'
@@ -385,25 +406,25 @@ export default function Chat() {
                     ? 'AI Debate requires at least 2 active API keys. Configure them in Settings.'
                     : 'Start Multi-AI Debate'
                 }
-                className="w-10 h-10 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 flex items-center justify-center shrink-0 smooth-transition disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 flex items-center justify-center shrink-0 smooth-transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span className="text-base select-none">⚔️</span>
+                <span className="text-sm sm:text-base select-none">⚔️</span>
               </button>
 
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={isDictating ? 'Listening to voice query input...' : 'Ask doubts, analyze code, request split comparisons...'}
-                className="flex-1 bg-transparent px-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none"
+                placeholder={isDictating ? 'Listening...' : 'Ask BodhAI a doubt or request compare...'}
+                className="flex-1 bg-transparent px-1 sm:px-2 text-xs text-slate-700 placeholder-slate-400 focus:outline-none min-w-0"
               />
 
               <button
                 type="submit"
                 disabled={!input.trim() && attachedFiles.length === 0}
-                className="w-10 h-10 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:bg-slate-105 text-white disabled:text-slate-400 flex items-center justify-center shrink-0 smooth-transition shadow-sm disabled:shadow-none"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:bg-slate-105 text-white disabled:text-slate-400 flex items-center justify-center shrink-0 smooth-transition shadow-sm disabled:shadow-none"
               >
-                <Send className="w-4 h-4 stroke-[2.2]" />
+                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.2]" />
               </button>
             </div>
           </form>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate as useNav, Link as RouterLink } from 'react-router-dom';
-import { Key, Mail, ArrowRight, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Key, Mail, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader } from '@/components/ui/loader';
 import AuthLayout from '../../components/auth/AuthLayout';
 import FormInput from '../../components/auth/FormInput';
 import { useAuth } from '../../hooks/useAuth';
@@ -106,7 +107,7 @@ export default function ForgotPassword() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader size="sm" />
                   <span>Sending...</span>
                 </>
               ) : (

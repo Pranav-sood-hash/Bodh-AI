@@ -93,13 +93,13 @@ export default function TaskModeSelector({ isOpen, onClose }: TaskModeSelectorPr
       
       {/* Modal Card */}
       <div 
-        className="w-full max-w-3xl bg-slate-900/90 border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative"
+        className="w-full max-w-3xl bg-slate-900/90 border border-white/10 rounded-2xl flex flex-col max-h-[90vh] shadow-2xl relative overflow-hidden"
         style={{
           boxShadow: '0 0 40px rgba(147, 51, 234, 0.15)'
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/5">
+        <div className="flex items-center justify-between p-6 border-b border-white/5 shrink-0">
           <div>
             <h2 className="text-xl font-extrabold text-slate-100 tracking-wide">Select Learning Mode</h2>
             <p className="text-xs text-slate-400 mt-1">Configure your BodhAI mentor session alignment parameters</p>
@@ -113,7 +113,7 @@ export default function TaskModeSelector({ isOpen, onClose }: TaskModeSelectorPr
         </div>
 
         {/* Options Grid */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto scrollbar-thin">
           {modeOptions.map((opt) => {
             const Icon = opt.icon;
             return (

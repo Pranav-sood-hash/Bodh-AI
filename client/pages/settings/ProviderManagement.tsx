@@ -140,7 +140,7 @@ export default function ProviderManagement() {
         </div>
 
         {/* Content Container */}
-        <div className="max-w-5xl mx-auto px-8 py-8 space-y-8 pb-32">
+        <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10 space-y-8 pb-32">
           
           {/* Breadcrumbs & Header */}
           <div className="space-y-1 select-none">

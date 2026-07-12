@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Key, Lock, ArrowRight, CheckCircle2, Loader2, Check } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Key, Lock, ArrowRight, CheckCircle2, Check } from 'lucide-react';
+import { Loader } from '@/components/ui/loader';
 import AuthLayout from '../../components/auth/AuthLayout';
 import FormInput from '../../components/auth/FormInput';
 import PasswordStrength from '../../components/auth/PasswordStrength';
@@ -189,7 +190,7 @@ export default function ResetPassword() {
           >
             {loading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader size="sm" />
                 <span>Updating...</span>
               </>
             ) : success ? (

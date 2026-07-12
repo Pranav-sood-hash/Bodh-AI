@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { Loader } from '@/components/ui/loader';
 import AuthLayout from '../../components/auth/AuthLayout';
 import FormInput from '../../components/auth/FormInput';
 import { GoogleButton } from '../../components/auth/GoogleButton';
@@ -201,7 +202,7 @@ export default function Login() {
         >
           {loading ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader size="sm" />
               <span>Signing in...</span>
             </>
           ) : (
