@@ -183,8 +183,8 @@ export default function Sidebar({ userName }: SidebarProps) {
     };
 
     const sidebarContent = (
-      <div className="flex flex-col justify-between h-full">
-        <div>
+      <div className="flex flex-col h-full justify-between">
+        <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin">
           <div
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-3 px-4 pt-6 cursor-pointer group"
@@ -222,9 +222,30 @@ export default function Sidebar({ userName }: SidebarProps) {
               );
             })}
           </nav>
+
+          {/* Mobile bottom footer (inside scrollable area) */}
+          <div className="lg:hidden mt-auto pt-4 border-t border-slate-800 my-4 mx-4">
+            <div className="space-y-1">
+              <button
+                onClick={() => alert('Redirecting to help center...')}
+                className="w-full flex items-center gap-3 px-0 py-2.5 text-slate-400 hover:text-white transition-all text-sm font-medium"
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span>Help Center</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-0 py-2.5 text-slate-400 hover:text-white transition-all text-sm font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="pb-6">
+        {/* Desktop bottom footer (fixed at bottom) */}
+        <div className="hidden lg:block pb-6">
           <div className="border-t border-slate-800 my-4 mx-4" />
           <div className="space-y-1">
             <button
@@ -273,7 +294,7 @@ export default function Sidebar({ userName }: SidebarProps) {
 
         {/* Mobile drawer */}
         <div
-          className={`lg:hidden fixed left-0 top-0 z-50 h-screen w-72 bg-slate-900 border-r border-slate-800 flex flex-col select-none transition-transform duration-300 ${
+          className={`lg:hidden fixed left-0 top-0 z-50 h-[100dvh] w-72 bg-slate-900 border-r border-slate-800 flex flex-col select-none transition-transform duration-300 ${
             mobileOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -451,10 +472,34 @@ export default function Sidebar({ userName }: SidebarProps) {
             );
           })}
         </nav>
+        {/* Mobile bottom footer (inside scrollable area) */}
+        <div className="lg:hidden mt-auto pt-6 border-t border-white/5 space-y-3">
+          <div
+            className="flex items-center gap-3 px-2 cursor-pointer group"
+            onClick={() => navigate('/settings')}
+            title="Go to Settings & Profile"
+          >
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-purple-500 flex items-center justify-center font-bold text-slate-100 text-xs shadow-inner group-hover:ring-2 group-hover:ring-purple-400 transition flex-shrink-0">
+              {userName ? userName.charAt(0).toUpperCase() : 'D'}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-slate-200 truncate leading-none mb-1 group-hover:text-purple-300 transition">{userName || 'User'}</p>
+              <span className="text-[10px] text-slate-500 font-semibold tracking-wide uppercase leading-none">Settings & Profile</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 smooth-transition text-sm font-medium"
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
-      {/* Lower / Profile Section */}
-      <div className="pt-4 border-t border-white/5 space-y-3">
+      {/* Desktop bottom footer (fixed at bottom) */}
+      <div className="hidden lg:block pt-4 border-t border-white/5 space-y-3">
         <div
           className="flex items-center gap-3 px-2 cursor-pointer group"
           onClick={() => navigate('/settings')}
@@ -507,7 +552,7 @@ export default function Sidebar({ userName }: SidebarProps) {
 
       {/* Mobile drawer */}
       <div
-        className={`lg:hidden fixed left-0 top-0 z-50 h-screen w-72 bg-slate-950 border-r border-white/5 flex flex-col select-none transition-transform duration-300 ease-in-out ${
+        className={`lg:hidden fixed left-0 top-0 z-50 h-[100dvh] w-72 bg-slate-950 border-r border-white/5 flex flex-col select-none transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
