@@ -1,0 +1,61 @@
+================================================================================
+                                   BODH-AI
+           Personalized AI Learning & Interactive Project Builder
+================================================================================
+
+WHAT IS BODH-AI?
+Bodh-AI is an intelligent, full-stack learning platform designed to help you build 
+real-world engineering skills. Instead of passively watching tutorials, you state 
+your goal, and Bodh-AI generates a customized learning roadmap, quizzes you on 
+topics, guides you through live practice sessions, and grades your project code.
+
+
+HOW IT WORKS (THE CORE WORKFLOW)
+
+* Custom Roadmaps: Tell the AI what you want to learn. It generates a multi-week 
+  learning pathway tailored to your experience level.
+* Milestone Validation: Lock in your progress by completing milestones through 
+  interactive quizzes or guided AI practice chat sessions.
+* Dual-Mode Project Builder: You choose how to build and validate projects:
+  - Step-by-Step: AI breaks the project into incremental milestones. You upload 
+    deliverable files for each step, and AI validates them in the background.
+  - Classic/Direct: Build the whole codebase independently, submit a ZIP file, 
+    and get a comprehensive score and feedback.
+* Capstone Generator: Completing all roadmap milestones auto-generates a 
+  capstone project combining all your newly learned skills.
+* Cognitive Mind Analytics: Measures learning streaks, topic mastery, and an 
+  attention focus index (deep-work hours) to adjust recommend workloads.
+* Voice Assistant: Ask questions hands-free using an AI voice mentor with 
+  adjustable language, pitch, and playback speeds.
+
+
+HOW BODH-AI HITS DIFFERENT (WHY IT'S NOT JUST ANOTHER TUTORIAL PORTAL)
+
+1. Active Building Over Passive Watching
+   Most platforms give you video playlists or text pages. Bodh-AI demands actual 
+   code files to pass milestones. You learn by writing real code.
+
+2. Real-Time Automated AI Code Grading & Validation
+   You don't just self-assess. The platform executes background checks on your 
+   code submissions and provides an objective score, strengths list, and specific 
+   improvements.
+
+3. Dynamic Roadmap Reoptimization
+   If you change your goals or want to pivot your curriculum mid-way, you can 
+   reoptimize your pathway instantly. The AI adjusts upcoming nodes to keep you 
+   aligned.
+
+4. Multi-Modal Experience (Text & Speech)
+   Features a voice dashboard. You can talk to your AI tutor hands-free, adjusting 
+   audio parameters to match your listening preference.
+
+5. Cognitive Attention Indexing
+   Tracks real focus metrics to estimate topic mastery and streak indexes, 
+   acting as a personalized smart coach that keeps you accountable.
+
+
+QUICK TECH STACK OVERVIEW
+
+* Frontend: React 18, React Router 6 (SPA), Tailwind CSS 3, Lucide Icons, Radix UI.
+* Backend: Express Server, Prisma Database client, Socket.io for background updates.
+* Communication: Axios API client, real-time WebSockets for background validation.
