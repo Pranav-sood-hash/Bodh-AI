@@ -23,7 +23,7 @@ export const initSocket = (httpServer: HttpServer): SocketIOServer => {
       methods: ['GET', 'POST'],
       credentials: true,
     },
-  });
+  } as any);
 
   // Authentication Middleware
   io.use(async (socket: AuthenticatedSocket, next) => {

@@ -61,7 +61,7 @@ passport.use(
         return done(err as Error, undefined);
       }
     }
-  )
+  ) as any
 );
 
 export default passport;

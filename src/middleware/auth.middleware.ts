@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-export const authenticate = async (req: Request, _res: Response, next: NextFunction) => {
+export const authenticate = async (req: any, _res: any, next: any) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {

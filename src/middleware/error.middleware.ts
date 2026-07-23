@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiError } from '../utils/apiResponse';
 import { logger } from '../utils/logger';
 
-export const errorHandler = (err: any, _req: Request, res: Response, _next: NextFunction) => {
+export const errorHandler = (err: any, _req: any, res: any, _next: any) => {
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
 
@@ -44,6 +44,6 @@ export const errorHandler = (err: any, _req: Request, res: Response, _next: Next
   });
 };
 
-export const notFound = (_req: Request, _res: Response, next: NextFunction) => {
+export const notFound = (_req: any, _res: any, next: any) => {
   next(new ApiError(404, 'Route not found'));
 };

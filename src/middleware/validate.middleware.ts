@@ -3,7 +3,7 @@ import { ZodSchema, ZodError } from 'zod';
 import { ApiError } from '../utils/apiResponse';
 
 export const validate = (schema: ZodSchema) => {
-  return (req: Request, _res: Response, next: NextFunction) => {
+  return (req: any, _res: any, next: any) => {
     try {
       schema.parse(req.body);
       next();

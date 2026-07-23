@@ -6,16 +6,16 @@ const isDev = process.env.NODE_ENV === 'development';
 const bypassRateLimit = isDev || process.env.DISABLE_RATE_LIMIT === 'true';
 
 // Helper to extract the actual client IP address behind proxy/load balancers
-const getClientIp = (req: Request): string => {
-  const xff = req.headers['x-forwarded-for'];
+const getClientIp = (req: any): string => {
+  const xff = req.headers?.['x-forwarded-for'];
   if (typeof xff === 'string') {
     return xff.split(',')[0].trim();
   }
-  return req.ip || req.socket.remoteAddress || 'unknown';
+  return req.ip || req.socket?.remoteAddress || 'unknown';
 };
 
 export const apiLimiter = bypassRateLimit
-  ? (req: Request, res: Response, next: NextFunction) => next()
+  ? (_req: any, _res: any, next: any) => { next(); }
   : rateLimit({
       windowMs: RATE_LIMIT_WINDOW_MS,
       max: RATE_LIMIT_MAX,
@@ -26,7 +26,7 @@ export const apiLimiter = bypassRateLimit
     });
 
 export const authLimiter = bypassRateLimit
-  ? (req: Request, res: Response, next: NextFunction) => next()
+  ? (_req: any, _res: any, next: any) => { next(); }
   : rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '30'),
@@ -37,7 +37,7 @@ export const authLimiter = bypassRateLimit
     });
 
 export const aiLimiter = bypassRateLimit
-  ? (req: Request, res: Response, next: NextFunction) => next()
+  ? (_req: any, _res: any, next: any) => { next(); }
   : rateLimit({
       windowMs: 60 * 1000, // 1 minute
       max: parseInt(process.env.AI_RATE_LIMIT_MAX || '60'),

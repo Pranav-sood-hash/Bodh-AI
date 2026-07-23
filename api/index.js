@@ -203,13 +203,15 @@ var init_rateLimit_middleware = __esm({
     isDev = process.env.NODE_ENV === "development";
     bypassRateLimit = isDev || process.env.DISABLE_RATE_LIMIT === "true";
     getClientIp = (req) => {
-      const xff = req.headers["x-forwarded-for"];
+      const xff = req.headers?.["x-forwarded-for"];
       if (typeof xff === "string") {
         return xff.split(",")[0].trim();
       }
-      return req.ip || req.socket.remoteAddress || "unknown";
+      return req.ip || req.socket?.remoteAddress || "unknown";
     };
-    apiLimiter = bypassRateLimit ? (req, res, next) => next() : rateLimit({
+    apiLimiter = bypassRateLimit ? (_req, _res, next) => {
+      next();
+    } : rateLimit({
       windowMs: RATE_LIMIT_WINDOW_MS,
       max: RATE_LIMIT_MAX,
       message: { success: false, message: "Too many requests, please try again later." },
@@ -217,7 +219,9 @@ var init_rateLimit_middleware = __esm({
       legacyHeaders: false,
       keyGenerator: getClientIp
     });
-    authLimiter = bypassRateLimit ? (req, res, next) => next() : rateLimit({
+    authLimiter = bypassRateLimit ? (_req, _res, next) => {
+      next();
+    } : rateLimit({
       windowMs: 15 * 60 * 1e3,
       // 15 minutes
       max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || "30"),
@@ -226,7 +230,9 @@ var init_rateLimit_middleware = __esm({
       legacyHeaders: false,
       keyGenerator: getClientIp
     });
-    aiLimiter = bypassRateLimit ? (req, res, next) => next() : rateLimit({
+    aiLimiter = bypassRateLimit ? (_req, _res, next) => {
+      next();
+    } : rateLimit({
       windowMs: 60 * 1e3,
       // 1 minute
       max: parseInt(process.env.AI_RATE_LIMIT_MAX || "60"),
