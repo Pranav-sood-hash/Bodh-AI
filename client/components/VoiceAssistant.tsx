@@ -55,9 +55,13 @@ export default function VoiceAssistant() {
       const selectedVoice = settings.selectedVoice || 'Aria';
       const voiceId = voiceMap[selectedVoice] || voiceMap.Aria;
 
+      const token = localStorage.getItem('accessToken');
       const response = await fetch('/api/voice/speak', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           text: cleanText,
           voiceId,
@@ -71,9 +75,13 @@ export default function VoiceAssistant() {
       const audioUrl = URL.createObjectURL(blob);
       const audio = new Audio(audioUrl);
       audio.onended = () => setStatus('idle');
+      audio.onerror = () => {
+        setStatus('idle');
+        throw new Error('Audio playback failed');
+      };
       await audio.play();
     } catch (err) {
-      console.warn('ElevenLabs TTS failed, falling back to Web Speech API:', err);
+      console.warn('ElevenLabs TTS failed or unavailable, falling back to Web Speech API:', err);
       
       if (!window.speechSynthesis) {
         setStatus('idle');
@@ -107,6 +115,10 @@ export default function VoiceAssistant() {
       }
 
       utterance.onend = () => setStatus('idle');
+      utterance.onerror = (e) => {
+        console.error('Web Speech error:', e);
+        setStatus('idle');
+      };
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -116,12 +128,15 @@ export default function VoiceAssistant() {
     setError('');
 
     try {
-      // Use localStorage API key if available, otherwise server will use environment variable
       const apiKey = localStorage.getItem('groqApiKey');
+      const token = localStorage.getItem('accessToken');
 
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           messages: [{ role: 'user', content: userText }],
           system_prompt:
@@ -158,8 +173,7 @@ export default function VoiceAssistant() {
 
   const handleStartListening = () => {
     if (!speechSupported) {
-      // Fallback: use a text prompt
-      const userText = window.prompt('Speech not supported. Type your question:');
+      const userText = window.prompt('Speech not supported in this browser. Type your question:');
       if (userText?.trim()) {
         setTranscript(userText);
         getAIResponse(userText);
@@ -178,9 +192,13 @@ export default function VoiceAssistant() {
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: any) => {
-      const spokenText = event.results[0][0].transcript;
-      setTranscript(spokenText);
-      getAIResponse(spokenText);
+      const spokenText = event.results?.[0]?.[0]?.transcript || '';
+      if (spokenText) {
+        setTranscript(spokenText);
+        getAIResponse(spokenText);
+      } else {
+        setStatus('idle');
+      }
     };
 
     recognition.onerror = (event: any) => {
